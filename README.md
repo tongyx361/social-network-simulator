@@ -45,9 +45,6 @@ pip install -e ".[frontend]" # uv pip install -e ".[frontend]"
 Then just run the demo app with:
 
 ```bash
-export ZHIPUAI_API_KEY="Your API key"
-# Or using other LLM providers
-# export OPENAI_API_KEY="Your API key"
 streamlit run src/examples/demo.py
 ```
 

@@ -7,6 +7,9 @@ from typing import Any
 import nest_asyncio
 import pandas as pd
 import streamlit as st
+from camel.agents import ChatAgent
+from camel.models import ModelFactory
+from camel.types import ModelPlatformType, ModelType
 from stqdm import stqdm
 
 from oasis.social_platform.typing import ActionType
@@ -22,10 +25,15 @@ def setup_debug_mode():
     import importlib
 
     from sns import simulation
-    from sns.utils import temporal_graph
+    from sns.utils import models, temporal_graph
 
     importlib.reload(simulation)
     importlib.reload(temporal_graph)
+    importlib.reload(models)
+
+
+from sns.simulation import ModelConfig, SimulationConfig, simulate_twitter  # noqa: E402
+from sns.utils.models import MODEL_PLATFORM2API_KEY_ENV_NAME  # noqa: E402
 
 
 def disable_debug_mode():
@@ -38,8 +46,6 @@ def toggle_debug_mode():
     else:
         disable_debug_mode()
 
-
-from sns.simulation import SimulationConfig, simulate_twitter  # noqa: E402
 
 AGENT_INFO_FIELDS = [
     "user_id",
@@ -73,6 +79,47 @@ if __name__ == "__main__":
     with st.sidebar:
         st.header("Simulation Settings")
 
+        with st.expander("Model Backend", expanded=True, icon="🔑"):
+            with st.form("api_key", border=False):
+                st.selectbox(
+                    "Model Platform",
+                    index=[p for p in ModelPlatformType].index(ModelPlatformType.ZHIPU),
+                    options=[platform.value for platform in ModelPlatformType],
+                    key="model_platform",
+                )
+                st.selectbox(
+                    "Model Type",
+                    index=[m for m in ModelType].index(ModelType.GLM_4_FLASH),
+                    options=[model_type.value for model_type in ModelType],
+                    key="model_type",
+                )
+                st.text_input(
+                    "API Key Env. Name",
+                    value="ZHIPUAI_API_KEY",
+                    key="api_key_env_name",
+                    help=str({k.value: v for k, v in MODEL_PLATFORM2API_KEY_ENV_NAME.items()}),
+                )
+                api_key_value = st.text_input(
+                    "API Key",
+                    value=os.environ.get(st.session_state["api_key_env_name"]),
+                    type="password",
+                    key="api_key",
+                )
+                if api_key_value is not None:
+                    os.environ[st.session_state["api_key_env_name"]] = api_key_value
+                if st.form_submit_button("Validate"):
+                    model = ModelFactory.create(
+                        model_platform=ModelPlatformType(st.session_state["model_platform"]),
+                        model_type=ModelType(st.session_state["model_type"]),
+                    )
+                    chat_agent = ChatAgent(model=model)
+                    try:
+                        response = chat_agent.step(input_message="Who are you?")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+                    else:
+                        st.success(str(response.msgs[0].content))
+
         st.multiselect(
             "Available Actions",
             options=[action.value for action in ActionType],
@@ -80,6 +127,14 @@ if __name__ == "__main__":
             key="available_actions",
         )
 
+        st.toggle(
+            "Debug Mode",
+            on_change=toggle_debug_mode,
+            key="debug_mode",
+            value=os.environ.get("DEBUG", "false").lower() == "true",
+        )
+
+    with st.expander("Simulation", expanded=True, icon="🔮"):
         # The uploaded `base_agent_info_file` is immediately used to build the `base_agent_info_df`
         # without the need to put it in `st.session_state`
         base_agent_info_file = st.file_uploader("Upload Base Agent Information", type="csv")
@@ -95,15 +150,6 @@ if __name__ == "__main__":
         st.session_state["agent_info"]["Base"] = st.data_editor(
             base_agent_info_df, num_rows="dynamic", key="edited_base_agent_info_df_changes"
         )
-
-        st.toggle(
-            "Debug Mode",
-            on_change=toggle_debug_mode,
-            key="debug_mode",
-            value=os.environ.get("DEBUG", "false").lower() == "true",
-        )
-
-    with st.expander("Simulation", expanded=True, icon="🔮"):
         # TODO: Multiple simulations
         st.write("Agent Information for Comparison (Refreshing if base changes)")
         st.session_state["agent_info"]["Experiment"] = st.data_editor(
@@ -127,6 +173,10 @@ if __name__ == "__main__":
             simu_configs: list[SimulationConfig] = []
             for simu_id in st.session_state["selected_simulation_ids"]:
                 simu_config = SimulationConfig(
+                    model_config=ModelConfig(
+                        model_platform=ModelPlatformType(st.session_state["model_platform"]),
+                        model_type=ModelType(st.session_state["model_type"]),
+                    ),
                     agent_info=st.session_state["agent_info"][simu_id],
                     available_actions=st.session_state["available_actions"],
                     db_path=simu_db_home / f"{simu_id}.db",

@@ -23,6 +23,7 @@ repos:
           - streamlit
           - stqdm
           - nest-asyncio
+          - openai
           - ".[frontend,dev]"
 
   # https://github.com/srstevenson/nb-clean?tab=readme-ov-file#cleaning-pre-commit-hook
