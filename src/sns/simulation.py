@@ -13,6 +13,7 @@ from oasis.social_agent.agents_generator import generate_agents
 from oasis.social_platform.channel import Channel
 from oasis.social_platform.platform import Platform
 from oasis.social_platform.typing import ActionType, RecsysType
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class SimulationConfig:
     recsys_type: RecsysType = RecsysType.TWHIN
 
 
-async def simulate_twitter(config: SimulationConfig) -> None:
+async def simulate_twitter(config: SimulationConfig, pbar: tqdm | None = None) -> None:
     # print(f"Simulating Twitter with {config=}")
     if os.path.exists(config.db_path):
         os.remove(config.db_path)
@@ -101,6 +102,8 @@ async def simulate_twitter(config: SimulationConfig) -> None:
         await asyncio.gather(*tasks)
         if config.visualization_home is not None:
             agent_graph.visualize(config.visualization_home / f"timestep_{timestep}_social_graph.png")
+        if pbar is not None:
+            pbar.update(1)
 
     # print("Waiting for simulation to finish...")
     await twitter_channel.write_to_receive_queue((None, None, ActionType.EXIT))

@@ -102,12 +102,12 @@ if __name__ == "__main__":
     # Prepare simulation configurations based on UI selections
 
     st.number_input("Run for Timesteps", min_value=1, value=3, step=1, key="num_timesteps")
-    st.checkbox("Sequential", value=True, key="sequential")
     if st.button("Run Selected Simulations"):
         simu_db_home = Path("./data/simu_db")
         viz_home = Path("./data/visualization")
 
         simu_configs = []
+        pbars = []
         if st.session_state["simulate_base"]:
             simu_configs.append(
                 SimulationConfig(
@@ -118,26 +118,24 @@ if __name__ == "__main__":
                     num_timesteps=st.session_state["num_timesteps"],
                 )
             )
+            pbars.append(stqdm(desc="Running Base Simulation", total=len(simu_configs)))
         if st.session_state["simulate_exp"]:
-            simu_configs.append(
-                SimulationConfig(
-                    agent_info=st.session_state["edited_exp_agent_info_df"],
-                    available_actions=st.session_state["available_actions"],
-                    db_path=simu_db_home / "exp.db",
-                    visualization_home=viz_home / "exp",
-                    num_timesteps=st.session_state["num_timesteps"],
-                )
+            simu_config = SimulationConfig(
+                agent_info=st.session_state["edited_exp_agent_info_df"],
+                available_actions=st.session_state["available_actions"],
+                db_path=simu_db_home / "exp.db",
+                visualization_home=viz_home / "exp",
+                num_timesteps=st.session_state["num_timesteps"],
             )
-
+            simu_configs.append(simu_config)
+            pbars.append(stqdm(desc="Running Experiment Simulation", total=len(simu_configs)))
         loop = asyncio.get_event_loop()
         try:
-            if st.session_state["sequential"]:
-                for config in stqdm(simu_configs, desc="Running Simulations"):
-                    # logger.debug(f"Running simulation with {config=}")
-                    loop.run_until_complete(simulate_twitter(config))
-            else:
-                with st.spinner("Running Simulations..."):
-                    loop.run_until_complete(asyncio.gather(*[simulate_twitter(config) for config in simu_configs]))
+            loop.run_until_complete(
+                asyncio.gather(
+                    *[simulate_twitter(config, pbar) for config, pbar in zip(simu_configs, pbars, strict=True)]
+                )
+            )
         except Exception as e:
             st.error(f"Error running simulations: {e}")
             raise e
