@@ -7,8 +7,9 @@ from typing import Any
 import nest_asyncio
 import pandas as pd
 import streamlit as st
-from oasis.social_platform.typing import ActionType
 from stqdm import stqdm
+
+from oasis.social_platform.typing import ActionType
 
 # c.f. https://sehmi-conscious.medium.com/got-that-asyncio-feeling-f1a7c37cab8b
 nest_asyncio.apply()
@@ -94,7 +95,6 @@ if __name__ == "__main__":
         st.session_state["agent_info"]["Base"] = st.data_editor(
             base_agent_info_df, num_rows="dynamic", key="edited_base_agent_info_df_changes"
         )
-        logger.debug(f"{st.session_state['edited_base_agent_info_df']=}")
 
         st.toggle(
             "Debug Mode",

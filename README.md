@@ -10,6 +10,9 @@ parts:
 - "Frontend": https://github.com/tongyx361/social-network-simulator
 - "Backend": https://github.com/tongyx361/oasis
 
+The frontend is based on Streamlit. Please check
+[there website](https://streamlit.io/) for more details.
+
 The backend is a fork of the OASIS project from CAMEL-AI since there exist some
 bugs and we also need some customizations and optimizations. Please check
 [their repo](https://github.com/camel-ai/oasis) for more details.
@@ -21,6 +24,7 @@ Python environment:
 
 ```bash
 conda create -n sns python=3.11 # micromamba create -n sns python=3.11
+conda activate sns # micromamba activate sns
 ```
 
 We recommend to use `pip` (or more efficient `uv`) to manage the Python
@@ -32,12 +36,13 @@ cd social-network-simulator
 cd oasis
 # pip install uv
 pip install -e "." # uv pip install -e "."
+cd ..
 pip install -e ".[frontend]" # uv pip install -e ".[frontend]"
 # For development, add the `dev` extra
 # pip install -e ".[frontend,dev]" # uv pip install -e ".[frontend,dev]"
 ```
 
-Then just run the demo with:
+Then just run the demo app with:
 
 ```bash
 streamlit run src/examples/demo.py

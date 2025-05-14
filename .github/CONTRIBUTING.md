@@ -23,8 +23,10 @@ the checks pass.
 Note that some errors can be automatically fixed (e.g. `ruff`), so sometimes you
 just need to add the changes and commit again.
 
-You can also run `pre-commit run [hook-id(s)] [--all-files]` to manually run the
-checks (optionally with specified ones or on all the files).
+You can also run `pre-commit run [--all-files] [single-hook-id]` to manually run
+the check (optionally with the specified one or on all the files).
+
+Sometimes you might need to clean the cache with `rm -rf ~/.cache/pre-commit`.
 
 If you really want to skip the checks, you can use `git commit --no-verify`.
 
@@ -57,3 +59,8 @@ The auxiliary parts of the repository are as follows:
 - [`pyproject.toml`](../pyproject.toml): the configuration for the Python
   project, used for modern Python tool configuration like for `ruff` and `mypy`.
 - ...
+
+## Conventions
+
+- For visualization, we recommend to use
+  [advanced visualization libraries like Vega-Altair in Streamlit](https://docs.streamlit.io/develop/api-reference/charts/st.altair_chart).
