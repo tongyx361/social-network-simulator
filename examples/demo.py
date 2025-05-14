@@ -96,6 +96,13 @@ if __name__ == "__main__":
         )
         logger.debug(f"{st.session_state['edited_base_agent_info_df']=}")
 
+        st.toggle(
+            "Debug Mode",
+            on_change=toggle_debug_mode,
+            key="debug_mode",
+            value=os.environ.get("DEBUG", "false").lower() == "true",
+        )
+
     # TODO: Multiple simulations
     st.write("Agent Information for Comparison (Refreshing if base changes)")
     st.session_state["agent_info"]["Experiment"] = st.data_editor(
@@ -135,10 +142,3 @@ if __name__ == "__main__":
             st.error(f"Error running simulations: {e}")
             raise e
         st.success("Simulations completed successfully")
-
-    st.toggle(
-        "Debug Mode",
-        on_change=toggle_debug_mode,
-        key="debug_mode",
-        value=os.environ.get("DEBUG", "false").lower() == "true",
-    )
