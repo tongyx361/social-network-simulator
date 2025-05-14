@@ -22,7 +22,7 @@ dependencies = [
 
 [project.optional-dependencies]
 all = ["sns[frontend,dev]"]
-frontend = ["streamlit", "watchdog", "plotly"]
+frontend = ["streamlit", "watchdog", "plotly", "nest_asyncio", "stqdm"]
 dev = ["pre-commit", "notebook", "ipywidgets"]
 
 [tool.hatch.build.targets.wheel]
