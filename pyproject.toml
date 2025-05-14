@@ -3,20 +3,30 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "social-network-simulator"
+name = "sns"
 version = "0.0.1"
 description = "A Social Network Simulator Based on Large Language Model Agents"
 authors = [
     {name = "Shawn/Yuxuan Tong", email = "tongyuxuan361@gmail.com"}
 ]
 license = {text = "Apache-2.0"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    "camel-oasis"
+    "camel-oasis",
+    "matplotlib",
+    "networkx",
+    "pandas",
+    "pycairo",
+    # "fastapi[standard]",
 ]
 
 [project.optional-dependencies]
-dev = ["pre-commit"]
+all = ["sns[frontend,dev]"]
+frontend = ["streamlit", "watchdog", "plotly"]
+dev = ["pre-commit", "notebook", "ipywidgets"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sns"]
 
 # -------------------------------
 # tool.ruff - Linting configuration

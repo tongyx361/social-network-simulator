@@ -1,0 +1,5 @@
+# c.f. https://docs.streamlit.io/develop/api-reference/configuration/config.toml
+
+[server]
+# Automatically rerun script when the file is modified on disk.
+runOnSave = true
