@@ -69,33 +69,33 @@ if __name__ == "__main__":
     st.set_page_config(page_title="Social Network Simulator", layout="wide")
     st.title("Social Network Simulator")
 
-    st.sidebar.header("Simulation Settings")
+    with st.sidebar:
+        st.header("Simulation Settings")
 
-    st.sidebar.multiselect(
-        "Available Actions",
-        options=[action.value for action in ActionType],
-        default=DEFAULT_AVAILABLE_ACTIONS,
-        key="available_actions",
-    )
+        st.multiselect(
+            "Available Actions",
+            options=[action.value for action in ActionType],
+            default=DEFAULT_AVAILABLE_ACTIONS,
+            key="available_actions",
+        )
 
-    # The uploaded `base_agent_info_file` is immediately used to build the `base_agent_info_df`
-    # without the need to put it in `st.session_state`
-    base_agent_info_file = st.sidebar.file_uploader("Upload Base Agent Information", type="csv")
-    just_read_df = pd.read_csv(base_agent_info_file, index_col=0) if base_agent_info_file is not None else None
-    # logger.debug(f"{just_read_df=}")
-    base_agent_info_df = just_read_df if just_read_df is not None else pd.DataFrame(columns=AGENT_INFO_FIELDS)
-    assert set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS), (
-        f"{set(base_agent_info_df.columns)=} != {set(AGENT_INFO_FIELDS)=}"
-    )
+        # The uploaded `base_agent_info_file` is immediately used to build the `base_agent_info_df`
+        # without the need to put it in `st.session_state`
+        base_agent_info_file = st.file_uploader("Upload Base Agent Information", type="csv")
+        just_read_df = pd.read_csv(base_agent_info_file, index_col=0) if base_agent_info_file is not None else None
+        # logger.debug(f"{just_read_df=}")
+        base_agent_info_df = just_read_df if just_read_df is not None else pd.DataFrame(columns=AGENT_INFO_FIELDS)
+        assert set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS), (
+            f"{set(base_agent_info_df.columns)=} != {set(AGENT_INFO_FIELDS)=}"
+        )
 
-    st.sidebar.write("Base Agent Information")
-    # `data_editor(key="data_editor")` only saves the changes to `st.session_state["data_editor"]`
-    st.session_state["agent_info"]["Base"] = st.sidebar.data_editor(
-        base_agent_info_df, num_rows="dynamic", key="edited_base_agent_info_df_changes"
-    )
-    logger.debug(f"{st.session_state['edited_base_agent_info_df']=}")
+        st.write("Base Agent Information")
+        # `data_editor(key="data_editor")` only saves the changes to `st.session_state["data_editor"]`
+        st.session_state["agent_info"]["Base"] = st.data_editor(
+            base_agent_info_df, num_rows="dynamic", key="edited_base_agent_info_df_changes"
+        )
+        logger.debug(f"{st.session_state['edited_base_agent_info_df']=}")
 
-    # Main
     # TODO: Multiple simulations
     st.write("Agent Information for Comparison (Refreshing if base changes)")
     st.session_state["agent_info"]["Experiment"] = st.data_editor(
