@@ -19,7 +19,7 @@ from pathlib import Path
 import networkx as nx
 import pandas as pd
 
-from sns.utils.graph import plot_graph_like_tree
+from sonetsim.utils.graph import plot_graph_like_tree
 
 logger = logging.getLogger(__name__)
 

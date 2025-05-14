@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sns"
+name = "sonetsim"
 version = "0.0.1"
 description = "A Social Network Simulator Based on Large Language Model Agents"
 authors = [
@@ -41,7 +41,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sns"]
+packages = ["src/sonetsim"]
 
 # -------------------------------
 # tool.ruff - Linting configuration
@@ -112,7 +112,7 @@ verl = [
 # error: Skipping analyzing "...": module is installed, but missing library stubs or py.typed marker  [import-untyped]
 # c.f. https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-library-stubs-or-py-typed-marker
 [[tool.mypy.overrides]]
-module = ["sns.*","nest_asyncio.*", "stqdm.*"]
+module = ["sonetsim.*","nest_asyncio.*", "stqdm.*"]
 follow_untyped_imports = true
 
 # For modules not properly typed

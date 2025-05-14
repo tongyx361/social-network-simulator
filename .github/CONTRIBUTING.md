@@ -42,7 +42,7 @@ The core parts of the repository are as follows:
 - [`src`](../src): the Python source code (for "frontend"), which will be
   checked by `mypy` as defined in
   [`.pre-commit-config.yaml`](../.pre-commit-config.yaml).
-  - [`sns`](../src/sns): the "Social Network Simulator" package code.
+  - [`sonetsim`](../src/sonetsim): the "Social Network Simulator" package code.
   - [`examples`](../src/examples): example code including the demo app.
   - [`notebooks`](../src/notebooks): `ipynb` files.
 - [`data`](../data): the data home.

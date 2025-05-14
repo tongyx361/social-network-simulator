@@ -24,16 +24,16 @@ def setup_debug_mode():
     logging.basicConfig(level=logging.DEBUG)
     import importlib
 
-    from sns import simulation
-    from sns.utils import models, temporal_graph
+    from sonetsim import simulation
+    from sonetsim.utils import models, temporal_graph
 
     importlib.reload(simulation)
     importlib.reload(temporal_graph)
     importlib.reload(models)
 
 
-from sns.simulation import ModelConfig, SimulationConfig, simulate_twitter  # noqa: E402
-from sns.utils.models import MODEL_PLATFORM2API_KEY_ENV_NAME  # noqa: E402
+from sonetsim.simulation import ModelConfig, SimulationConfig, simulate_twitter  # noqa: E402
+from sonetsim.utils.models import MODEL_PLATFORM2API_KEY_ENV_NAME  # noqa: E402
 
 
 def disable_debug_mode():
@@ -196,4 +196,4 @@ if __name__ == "__main__":
 
     st.header("Analysis")
     # TODO: Add visualization analysis based on the data in `simu_db_home`
-    # see `sns.utils` for analysis utilities
+    # see `sonetsim.utils` for analysis utilities

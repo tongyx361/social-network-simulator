@@ -1,18 +1,18 @@
-# Social Network Simulator
+# SoNetSim
 
-> A Social Network Simulator Based on Large Language Model Agents.
+> A **So**cial **Net**work **Sim**ulator Based on Large Language Model Agents.
 
 This project can be roughly (the boundary is not that clear) devided into two
 parts:
 
-- "Frontend": https://github.com/tongyx361/social-network-simulator
-- "Backend": https://github.com/tongyx361/oasis
+- "Frontend": [SoNetSim](https://github.com/tongyx361/sonetsim)
+- "Backend": [OASIS (Fork)](https://github.com/tongyx361/oasis)
 
 The frontend is based on Streamlit. Please check
-[there website](https://streamlit.io/) for more details.
+[their website](https://streamlit.io/) for more details.
 
-The backend is a fork of the OASIS project from CAMEL-AI since there exist some
-bugs and we also need some customizations and optimizations. Please check
+The backend is a fork of the OASIS project from CAMEL-AI. We fork for bug
+resolving, feature customizing and performance optimizing. Please check
 [their repo](https://github.com/camel-ai/oasis) for more details.
 
 ## Setup
@@ -28,8 +28,8 @@ We recommend to use `conda` (or more efficient `micromamba`) to manage the
 Python environment:
 
 ```bash
-conda create -n sns python=3.11 # micromamba create -n sns python=3.11
-conda activate sns # micromamba activate sns
+conda create -n sonetsim python=3.11 # micromamba create -n sonetsim python=3.11
+conda activate sonetsim # micromamba activate sonetsim
 ```
 
 We recommend to use `pip` (or more efficient `uv`) to manage the Python
