@@ -2,8 +2,6 @@
 
 > A Social Network Simulator Based on Large Language Model Agents.
 
-## Introduction
-
 This project can be roughly (the boundary is not that clear) devided into two
 parts:
 

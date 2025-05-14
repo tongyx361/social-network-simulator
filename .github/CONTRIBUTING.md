@@ -4,7 +4,7 @@
    roadmap.
 2. Please try to make pull requests instead of pushing to the `main` branch
    directly, so that we can easily check each other's changes. (But it's also
-   fine.)
+   fine to directly push sometimes.)
 3. For any questions, please contact @tongyx361.
 
 ## Setup
