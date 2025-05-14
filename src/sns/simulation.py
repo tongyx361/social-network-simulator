@@ -29,7 +29,7 @@ class SimulationConfig:
     agent_info: pd.DataFrame
     db_path: Path
     model_config: ModelConfig = field(default_factory=ModelConfig)
-    available_actions: list[ActionType] = field(
+    available_actions: list[ActionType | str] = field(
         default_factory=lambda: [
             ActionType.DO_NOTHING.value,
             ActionType.REPOST.value,

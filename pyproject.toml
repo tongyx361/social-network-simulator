@@ -23,7 +23,21 @@ dependencies = [
 [project.optional-dependencies]
 all = ["sns[frontend,dev]"]
 frontend = ["streamlit", "watchdog", "plotly", "nest_asyncio", "stqdm"]
-dev = ["pre-commit", "notebook", "ipywidgets"]
+dev = [
+    "pre-commit",
+    "notebook",
+    "ipywidgets",
+    # Keep consistent with `.pre-commit-config.yaml`
+    "ruff==0.11.9",
+    "mypy==1.15.0",
+    "pandas-stubs",
+    "matplotlib-stubs",
+    "types-tqdm",
+    "types-colorama",
+    "types-networkx",
+    "types-openpyxl",
+    "types-python-dateutil",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sns"]
@@ -90,3 +104,17 @@ verl = [
   "version/*",
   "trainer/config/*.yaml"
 ]
+
+# -------------------------------
+# tool.mypy - Type checking configuration
+# -------------------------------
+# error: Skipping analyzing "...": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+# c.f. https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-library-stubs-or-py-typed-marker
+[[tool.mypy.overrides]]
+module = ["sns.*", "nest_asyncio.*", "stqdm.*"]
+follow_untyped_imports = true
+
+# For modules not properly typed
+[[tool.mypy.overrides]]
+module = ["camel.*", "oasis.*"]
+ignore_missing_imports = true

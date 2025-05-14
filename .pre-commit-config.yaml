@@ -6,6 +6,24 @@ repos:
         args: ["--fix", "--show-fixes"]
       - id: ruff-format
 
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: "v1.15.0"
+    hooks:
+      - id: mypy
+        files: src|tests
+        args: []
+        additional_dependencies:
+          - pandas-stubs
+          - matplotlib-stubs
+          - types-tqdm
+          - types-colorama
+          - types-networkx
+          - types-openpyxl
+          - types-python-dateutil
+          - streamlit
+          - stqdm
+          - nest-asyncio
+
   # https://github.com/srstevenson/nb-clean?tab=readme-ov-file#cleaning-pre-commit-hook
   - repo: https://github.com/srstevenson/nb-clean
     rev: 4.0.1
