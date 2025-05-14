@@ -1,11 +1,48 @@
-# social-network-simulator
+# Social Network Simulator
 
-A Social Network Simulator Based on Large Language Model Agents.
+> A Social Network Simulator Based on Large Language Model Agents.
+
+## Introduction
+
+This project can be roughly (the boundary is not that clear) devided into two
+parts:
+
+- "Frontend": https://github.com/tongyx361/social-network-simulator
+- "Backend": https://github.com/tongyx361/oasis
+
+The backend is a fork of the OASIS project from CAMEL-AI since there exist some
+bugs and we also need some customizations and optimizations. Please check
+[their repo](https://github.com/camel-ai/oasis) for more details.
+
+## Setup
+
+We recommend to use `conda` (or more efficient `micromamba`) to manage the
+Python environment:
+
+```bash
+conda create -n sns python=3.11 # micromamba create -n sns python=3.11
+```
+
+We recommend to use `pip` (or more efficient `uv`) to manage the Python
+packages:
+
+```bash
+git clone https://github.com/tongyx361/social-network-simulator.git --recurse-submodules
+cd social-network-simulator
+cd oasis
+# pip install uv
+pip install -e "." # uv pip install -e "."
+pip install -e ".[frontend]" # uv pip install -e ".[frontend]"
+# For development, add the `dev` extra
+# pip install -e ".[frontend,dev]" # uv pip install -e ".[frontend,dev]"
+```
+
+Then just run the demo with:
+
+```bash
+streamlit run src/examples/demo.py
+```
 
 ## Contribution Guide
 
-We use `pre-commit` to manage code quality checks. Please install it with:
-
-```bash
-pre-commit install
-```
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md).

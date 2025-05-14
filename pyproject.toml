@@ -7,7 +7,10 @@ name = "sns"
 version = "0.0.1"
 description = "A Social Network Simulator Based on Large Language Model Agents"
 authors = [
-    {name = "Shawn/Yuxuan Tong", email = "tongyuxuan361@gmail.com"}
+    {name = "Shawn/Yuxuan Tong", email = "tongyuxuan361@gmail.com"},
+    # TODO: add emails if needed
+    {name = "Sunqi Fan"},
+    {name = "Zhihang Zhu"}
 ]
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
