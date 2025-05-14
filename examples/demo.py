@@ -103,42 +103,47 @@ if __name__ == "__main__":
             value=os.environ.get("DEBUG", "false").lower() == "true",
         )
 
-    # TODO: Multiple simulations
-    st.write("Agent Information for Comparison (Refreshing if base changes)")
-    st.session_state["agent_info"]["Experiment"] = st.data_editor(
-        st.session_state["agent_info"]["Base"], num_rows="dynamic", key="edited_exp_agent_info_df_changes"
-    )
+    with st.expander("Simulation", expanded=True, icon="🔮"):
+        # TODO: Multiple simulations
+        st.write("Agent Information for Comparison (Refreshing if base changes)")
+        st.session_state["agent_info"]["Experiment"] = st.data_editor(
+            st.session_state["agent_info"]["Base"], num_rows="dynamic", key="edited_exp_agent_info_df_changes"
+        )
 
-    st.multiselect(
-        "Select Simulations to Run",
-        default=["Base", "Experiment"],
-        options=["Base", "Experiment"],  # TODO: Dynamic options
-        key="selected_simulation_ids",
-    )
+        st.multiselect(
+            "Select Simulations to Run",
+            default=["Base", "Experiment"],
+            options=["Base", "Experiment"],  # TODO: Dynamic options
+            key="selected_simulation_ids",
+        )
 
-    # Prepare simulation configurations based on UI selections
+        # Prepare simulation configurations based on UI selections
 
-    st.number_input("Run for Timesteps", min_value=1, value=3, step=1, key="num_timesteps")
-    if st.button("Run Selected Simulations"):
-        simu_db_home = Path("./data/simu_db")
-        viz_home = Path("./data/visualization")
+        st.number_input("Run for Timesteps", min_value=1, value=3, step=1, key="num_timesteps")
+        if st.button("Run Selected Simulations"):
+            simu_db_home = Path("./data/simu_db")
+            viz_home = Path("./data/visualization")
 
-        simu_configs: list[SimulationConfig] = []
-        for simu_id in st.session_state["selected_simulation_ids"]:
-            simu_config = SimulationConfig(
-                agent_info=st.session_state["agent_info"][simu_id],
-                available_actions=st.session_state["available_actions"],
-                db_path=simu_db_home / f"{simu_id}.db",
-                visualization_home=viz_home / simu_id,
-                num_timesteps=st.session_state["num_timesteps"],
-                pbar=stqdm(desc=f"Simulating {simu_id}", total=st.session_state["num_timesteps"]),
-            )
-            simu_configs.append(simu_config)
+            simu_configs: list[SimulationConfig] = []
+            for simu_id in st.session_state["selected_simulation_ids"]:
+                simu_config = SimulationConfig(
+                    agent_info=st.session_state["agent_info"][simu_id],
+                    available_actions=st.session_state["available_actions"],
+                    db_path=simu_db_home / f"{simu_id}.db",
+                    visualization_home=viz_home / simu_id,
+                    num_timesteps=st.session_state["num_timesteps"],
+                    pbar=stqdm(desc=f"Simulating {simu_id}", total=st.session_state["num_timesteps"]),
+                )
+                simu_configs.append(simu_config)
 
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(asyncio.gather(*[simulate_twitter(config) for config in simu_configs]))
-        except Exception as e:
-            st.error(f"Error running simulations: {e}")
-            raise e
-        st.success("Simulations completed successfully")
+            loop = asyncio.get_event_loop()
+            try:
+                loop.run_until_complete(asyncio.gather(*[simulate_twitter(config) for config in simu_configs]))
+            except Exception as e:
+                st.error(f"Error running simulations: {e}")
+                raise e
+            st.success("Simulations completed successfully")
+
+    st.header("Analysis")
+    # TODO: Add visualization analysis based on the data in `simu_db_home`
+    # see `sns.utils` for analysis utilities
