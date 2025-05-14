@@ -17,6 +17,13 @@ bugs and we also need some customizations and optimizations. Please check
 
 ## Setup
 
+First clone the repo with the `oasis` submodule:
+
+```bash
+git clone https://github.com/tongyx361/social-network-simulator.git --recurse-submodules
+cd social-network-simulator
+```
+
 We recommend to use `conda` (or more efficient `micromamba`) to manage the
 Python environment:
 
@@ -29,8 +36,6 @@ We recommend to use `pip` (or more efficient `uv`) to manage the Python
 packages:
 
 ```bash
-git clone https://github.com/tongyx361/social-network-simulator.git --recurse-submodules
-cd social-network-simulator
 pip install -e "./oasis" # uv pip install -e "./oasis"
 pip install -e ".[frontend]" # uv pip install -e ".[frontend]"
 # For development, add the `dev` extra
