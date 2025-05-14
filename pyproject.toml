@@ -20,12 +20,10 @@ dependencies = [
     "networkx",
     "pandas",
     "pycairo",
-    "openai",
-    # "fastapi[standard]",
 ]
 
 [project.optional-dependencies]
-frontend = ["streamlit", "watchdog", "plotly", "nest_asyncio", "stqdm"]
+frontend = ["streamlit", "watchdog", "nest_asyncio", "stqdm", "altair[all]"]
 dev = [
     "pre-commit",
     "notebook",
