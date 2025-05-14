@@ -41,9 +41,10 @@ class SimulationConfig:
     num_timesteps: int = 3
     clock_factor: int = 60
     recsys_type: RecsysType = RecsysType.TWHIN
+    pbar: tqdm | None = None
 
 
-async def simulate_twitter(config: SimulationConfig, pbar: tqdm | None = None) -> None:
+async def simulate_twitter(config: SimulationConfig) -> None:
     # print(f"Simulating Twitter with {config=}")
     if os.path.exists(config.db_path):
         os.remove(config.db_path)
@@ -102,8 +103,8 @@ async def simulate_twitter(config: SimulationConfig, pbar: tqdm | None = None) -
         await asyncio.gather(*tasks)
         if config.visualization_home is not None:
             agent_graph.visualize(config.visualization_home / f"timestep_{timestep}_social_graph.png")
-        if pbar is not None:
-            pbar.update(1)
+        if config.pbar is not None:
+            config.pbar.update(1)
 
     # print("Waiting for simulation to finish...")
     await twitter_channel.write_to_receive_queue((None, None, ActionType.EXIT))

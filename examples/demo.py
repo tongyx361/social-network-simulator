@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 import nest_asyncio
 import pandas as pd
@@ -15,7 +16,7 @@ nest_asyncio.apply()
 logger = logging.getLogger(__name__)
 
 
-if os.environ.get("DEBUG", "false").lower() == "true":
+def setup_debug_mode():
     logging.basicConfig(level=logging.DEBUG)
     import importlib
 
@@ -24,6 +25,17 @@ if os.environ.get("DEBUG", "false").lower() == "true":
 
     importlib.reload(simulation)
     importlib.reload(temporal_graph)
+
+
+def disable_debug_mode():
+    logging.basicConfig(level=logging.INFO)
+
+
+def toggle_debug_mode():
+    if st.session_state["debug_mode"]:
+        setup_debug_mode()
+    else:
+        disable_debug_mode()
 
 
 from sns.simulation import SimulationConfig, simulate_twitter  # noqa: E402
@@ -46,11 +58,7 @@ DEFAULT_AVAILABLE_ACTIONS = [
     ActionType.FOLLOW.value,
 ]
 
-STATE2DEFAULT = {
-    "simu_configs": None,
-    "edited_base_agent_info_df": None,
-    "edited_exp_agent_info_df": None,
-}
+STATE2DEFAULT: dict[str, Any] = {"simu_configs": None, "agent_info": {}}
 
 # NOTE: Setting `key` also sets `st.session_state[key]`
 if __name__ == "__main__":
@@ -82,22 +90,24 @@ if __name__ == "__main__":
 
     st.sidebar.write("Base Agent Information")
     # `data_editor(key="data_editor")` only saves the changes to `st.session_state["data_editor"]`
-    st.session_state["edited_base_agent_info_df"] = st.sidebar.data_editor(
+    st.session_state["agent_info"]["Base"] = st.sidebar.data_editor(
         base_agent_info_df, num_rows="dynamic", key="edited_base_agent_info_df_changes"
     )
     logger.debug(f"{st.session_state['edited_base_agent_info_df']=}")
 
     # Main
+    # TODO: Multiple simulations
     st.write("Agent Information for Comparison (Refreshing if base changes)")
-    st.session_state["edited_exp_agent_info_df"] = st.data_editor(
-        st.session_state["edited_base_agent_info_df"], num_rows="dynamic", key="edited_exp_agent_info_df_changes"
+    st.session_state["agent_info"]["Experiment"] = st.data_editor(
+        st.session_state["agent_info"]["Base"], num_rows="dynamic", key="edited_exp_agent_info_df_changes"
     )
 
-    base_check_col, exp_check_col = st.columns(2)
-    with base_check_col:
-        st.checkbox("Base", value=True, key="simulate_base")
-    with exp_check_col:
-        st.checkbox("Experiment", value=True, key="simulate_exp")
+    st.multiselect(
+        "Select Simulations to Run",
+        default=["Base", "Experiment"],
+        options=["Base", "Experiment"],  # TODO: Dynamic options
+        key="selected_simulation_ids",
+    )
 
     # Prepare simulation configurations based on UI selections
 
@@ -106,37 +116,29 @@ if __name__ == "__main__":
         simu_db_home = Path("./data/simu_db")
         viz_home = Path("./data/visualization")
 
-        simu_configs = []
-        pbars = []
-        if st.session_state["simulate_base"]:
-            simu_configs.append(
-                SimulationConfig(
-                    agent_info=st.session_state["edited_base_agent_info_df"],
-                    available_actions=st.session_state["available_actions"],
-                    db_path=simu_db_home / "base.db",
-                    visualization_home=viz_home / "base",
-                    num_timesteps=st.session_state["num_timesteps"],
-                )
-            )
-            pbars.append(stqdm(desc="Running Base Simulation", total=len(simu_configs)))
-        if st.session_state["simulate_exp"]:
+        simu_configs: list[SimulationConfig] = []
+        for simu_id in st.session_state["selected_simulation_ids"]:
             simu_config = SimulationConfig(
-                agent_info=st.session_state["edited_exp_agent_info_df"],
+                agent_info=st.session_state["agent_info"][simu_id],
                 available_actions=st.session_state["available_actions"],
-                db_path=simu_db_home / "exp.db",
-                visualization_home=viz_home / "exp",
+                db_path=simu_db_home / f"{simu_id}.db",
+                visualization_home=viz_home / simu_id,
                 num_timesteps=st.session_state["num_timesteps"],
+                pbar=stqdm(desc=f"Simulating {simu_id}", total=st.session_state["num_timesteps"]),
             )
             simu_configs.append(simu_config)
-            pbars.append(stqdm(desc="Running Experiment Simulation", total=len(simu_configs)))
+
         loop = asyncio.get_event_loop()
         try:
-            loop.run_until_complete(
-                asyncio.gather(
-                    *[simulate_twitter(config, pbar) for config, pbar in zip(simu_configs, pbars, strict=True)]
-                )
-            )
+            loop.run_until_complete(asyncio.gather(*[simulate_twitter(config) for config in simu_configs]))
         except Exception as e:
             st.error(f"Error running simulations: {e}")
             raise e
         st.success("Simulations completed successfully")
+
+    st.toggle(
+        "Debug Mode",
+        on_change=toggle_debug_mode,
+        key="debug_mode",
+        value=os.environ.get("DEBUG", "false").lower() == "true",
+    )
