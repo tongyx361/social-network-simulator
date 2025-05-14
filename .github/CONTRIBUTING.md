@@ -1,8 +1,9 @@
 # Contribution Guide
 
-1. Please try to make pull requests instead of pushing to the `main` branch
+1. See #1 for the roadmap.
+2. Please try to make pull requests instead of pushing to the `main` branch
    directly. (But it's also fine.)
-2. For any questions, please contact @tongyx361.
+3. For any questions, please contact @tongyx361.
 
 ## Setup
 
