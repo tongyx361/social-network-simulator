@@ -65,4 +65,11 @@ if __name__ == "__main__":
     logger.debug(f"{base_agent_info_df=}")
     assert set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS)
     st.sidebar.write("Base Agent Information:")
-    base_agent_info = st.sidebar.data_editor(base_agent_info_df, key="base_agent_info", num_rows="dynamic")
+    edited_base_agent_info_df = st.sidebar.data_editor(base_agent_info_df, key="base_agent_info", num_rows="dynamic")
+
+    st.write("Agent Information for Comparison:")
+    edited_agent_info = st.data_editor(
+        edited_base_agent_info_df,  # Following the change of edited_base_agent_info_df
+        key="edited_agent_info",
+        num_rows="dynamic",
+    )
