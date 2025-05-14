@@ -8,12 +8,13 @@ import pandas as pd
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from colorama import Back
+from tqdm import tqdm
+
 from oasis.clock.clock import Clock
 from oasis.social_agent.agents_generator import generate_agents
 from oasis.social_platform.channel import Channel
 from oasis.social_platform.platform import Platform
 from oasis.social_platform.typing import ActionType, RecsysType
-from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
