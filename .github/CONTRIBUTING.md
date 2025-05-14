@@ -3,7 +3,8 @@
 1. See https://github.com/tongyx361/social-network-simulator/issues/1 for the
    roadmap.
 2. Please try to make pull requests instead of pushing to the `main` branch
-   directly. (But it's also fine.)
+   directly, so that we can easily check each other's changes. (But it's also
+   fine.)
 3. For any questions, please contact @tongyx361.
 
 ## Setup
