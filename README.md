@@ -31,10 +31,7 @@ packages:
 ```bash
 git clone https://github.com/tongyx361/social-network-simulator.git --recurse-submodules
 cd social-network-simulator
-cd oasis
-# pip install uv
-pip install -e "." # uv pip install -e "."
-cd ..
+pip install -e "./oasis" # uv pip install -e "./oasis"
 pip install -e ".[frontend]" # uv pip install -e ".[frontend]"
 # For development, add the `dev` extra
 # pip install -e ".[frontend,dev]" # uv pip install -e ".[frontend,dev]"
