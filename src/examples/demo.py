@@ -8,6 +8,7 @@ from typing import Any
 import nest_asyncio
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from camel.agents import ChatAgent
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
@@ -15,11 +16,15 @@ from stqdm import stqdm
 
 from oasis.social_platform.typing import ActionType
 from sonetsim.utils.animation import (
-    show_action_animation,
-    show_comment_sentiment_timeline,
-    show_follower_trend,
-    show_post_popularity_flow,
-    show_repost_network,
+    build_post_graph,
+    build_repost_network,
+    get_action_data,
+    get_follower_trend,
+    get_sentiment_timeline,
+    plot_action_animation,
+    plot_follower_growth,
+    plot_post_popularity_flow,
+    plot_sentiment_timeline,
 )
 
 # c.f. https://sehmi-conscious.medium.com/got-that-asyncio-feeling-f1a7c37cab8b
@@ -204,12 +209,19 @@ if __name__ == "__main__":
 
     st.header("Analysis")
 
+    freq_map = {"hour": "H", "day": "D", "week": "W", "month": "M"}
+
     simu_id_to_analyze = st.selectbox(
         "Select Simulation to Analyze",
         options=["Base", "Experiment"],
         index=0,
         key="simu_id_to_analyze",
     )
+    db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")
+    if not db_path.exists():
+        st.error(f"Database {db_path} does not exist. Please run simulations first.")
+        st.stop()
+    conn = sqlite3.connect(db_path)
 
     st.subheader("📈 Behavior Analysis Dashboard")
 
@@ -224,23 +236,46 @@ if __name__ == "__main__":
         ],
     )
 
-    db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")
-    if not db_path.exists():
-        st.error(f"Database {db_path} does not exist. Please run simulations first.")
-        st.stop()
-    conn = sqlite3.connect(db_path)
-
     if chart_type == "📊 Action Count Animation":
-        show_action_animation(conn)
+        st.markdown("#### Action Count Animation")
+        selected_actions = st.multiselect(
+            "Select Actions",
+            ["like", "dislike", "comment", "follow", "repost"],
+            default=["like", "comment"],
+        )
+        time_bin = st.selectbox("Time Bin", ["hour", "day", "week", "month"], index=1)
+
+        df_action = get_action_data(conn, selected_actions, freq_map[time_bin])
+        if df_action is not None:
+            fig = plot_action_animation(df_action)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No action data found for selected actions.")
 
     elif chart_type == "📈 Follower Trend":
-        show_follower_trend(conn)
+        st.markdown("#### Follower Growth Over Time")
+        top_k = st.slider("Number of Top Users", 1, 20, 5)
+        trend = get_follower_trend(conn, top_k=top_k)
+        fig = plot_follower_growth(trend)
+        st.plotly_chart(fig, use_container_width=True)
 
     elif chart_type == "🔥 Post Popularity Flow":
-        show_post_popularity_flow(conn)
+        st.markdown("#### Post Popularity Tree")
+        post_id = st.number_input("Enter Root Post ID", min_value=0, value=1)
+        G = build_post_graph(conn, post_id)
+        fig = plot_post_popularity_flow(G)
+        if fig:
+            st.pyplot(fig)
+        else:
+            st.info("No reposts found for this post.")
 
     elif chart_type == "🌐 Repost Network":
-        show_repost_network(conn)
+        st.markdown("#### User Repost Network")
+        path = build_repost_network(conn)
+        components.html(open(path).read(), height=600)
 
     elif chart_type == "💬 Comment Sentiment Timeline":
-        show_comment_sentiment_timeline(conn)
+        st.markdown("#### Sentiment of Comments Over Time")
+        sentiment = get_sentiment_timeline(conn)
+        fig = plot_sentiment_timeline(sentiment)
+        st.plotly_chart(fig, use_container_width=True)
