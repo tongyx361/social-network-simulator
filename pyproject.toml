@@ -20,6 +20,9 @@ dependencies = [
     "networkx",
     "pandas",
     "pycairo",
+    "plotly",
+    "pyvis",
+    "textblob",
 ]
 
 [project.optional-dependencies]
@@ -117,5 +120,5 @@ follow_untyped_imports = true
 
 # For modules not properly typed
 [[tool.mypy.overrides]]
-module = ["camel.*", "oasis.*"]
+module = ["camel.*", "oasis.*", "pyvis.*", "textblob.*", "plotly", "plotly.*" ]
 ignore_missing_imports = true

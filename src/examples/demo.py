@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,13 @@ from camel.types import ModelPlatformType, ModelType
 from stqdm import stqdm
 
 from oasis.social_platform.typing import ActionType
+from sonetsim.utils.animation import (
+    show_action_animation,
+    show_comment_sentiment_timeline,
+    show_follower_trend,
+    show_post_popularity_flow,
+    show_repost_network,
+)
 
 # c.f. https://sehmi-conscious.medium.com/got-that-asyncio-feeling-f1a7c37cab8b
 nest_asyncio.apply()
@@ -195,5 +203,44 @@ if __name__ == "__main__":
             st.success("Simulations completed successfully")
 
     st.header("Analysis")
-    # TODO: Add visualization analysis based on the data in `simu_db_home`
-    # see `sonetsim.utils` for analysis utilities
+
+    simu_id_to_analyze = st.selectbox(
+        "Select Simulation to Analyze",
+        options=["Base", "Experiment"],
+        index=0,
+        key="simu_id_to_analyze",
+    )
+
+    st.subheader("📈 Behavior Analysis Dashboard")
+
+    chart_type = st.radio(
+        "Select Analysis Type",
+        [
+            "📊 Action Count Animation",
+            "📈 Follower Trend",
+            "🔥 Post Popularity Flow",
+            "🌐 Repost Network",
+            "💬 Comment Sentiment Timeline",
+        ],
+    )
+
+    db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")
+    if not db_path.exists():
+        st.error(f"Database {db_path} does not exist. Please run simulations first.")
+        st.stop()
+    conn = sqlite3.connect(db_path)
+
+    if chart_type == "📊 Action Count Animation":
+        show_action_animation(conn)
+
+    elif chart_type == "📈 Follower Trend":
+        show_follower_trend(conn)
+
+    elif chart_type == "🔥 Post Popularity Flow":
+        show_post_popularity_flow(conn)
+
+    elif chart_type == "🌐 Repost Network":
+        show_repost_network(conn)
+
+    elif chart_type == "💬 Comment Sentiment Timeline":
+        show_comment_sentiment_timeline(conn)
