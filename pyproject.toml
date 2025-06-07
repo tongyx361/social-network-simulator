@@ -120,5 +120,5 @@ follow_untyped_imports = true
 
 # For modules not properly typed
 [[tool.mypy.overrides]]
-module = ["camel.*", "oasis.*", "pyvis.*", "textblob.*", "plotly", "plotly.*" ]
+module = ["camel.*", "oasis.*", "pyvis.*", "textblob.*", "plotly", "plotly.*", "sonetsim", "sonetsim.*" ]
 ignore_missing_imports = true

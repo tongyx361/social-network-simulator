@@ -147,27 +147,86 @@ if __name__ == "__main__":
             value=os.environ.get("DEBUG", "false").lower() == "true",
         )
 
-    with st.expander("Simulation", expanded=True, icon="🔮"):
-        # The uploaded `base_agent_info_file` is immediately used to build the `base_agent_info_df`
-        # without the need to put it in `st.session_state`
-        base_agent_info_file = st.file_uploader("Upload Base Agent Information", type="csv")
-        just_read_df = pd.read_csv(base_agent_info_file, index_col=0) if base_agent_info_file is not None else None
-        # logger.debug(f"{just_read_df=}")
-        base_agent_info_df = just_read_df if just_read_df is not None else pd.DataFrame(columns=AGENT_INFO_FIELDS)
-        assert set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS), (
-            f"{set(base_agent_info_df.columns)=} != {set(AGENT_INFO_FIELDS)=}"
+    with st.expander("🔮 Simulation Settings: Compare Base vs. Experiment", expanded=True):
+        st.markdown(
+            """
+            Upload the agent information for your **Base** simulation on the left.
+            On the right, you can edit the **Experiment** configuration derived from the base.
+            This allows you to easily compare and adjust settings between the two scenarios.
+            """
         )
 
-        st.write("Base Agent Information")
-        # `data_editor(key="data_editor")` only saves the changes to `st.session_state["data_editor"]`
-        st.session_state["agent_info"]["Base"] = st.data_editor(
-            base_agent_info_df, num_rows="dynamic", key="edited_base_agent_info_df_changes"
-        )
-        # TODO: Multiple simulations
-        st.write("Agent Information for Comparison (Refreshing if base changes)")
-        st.session_state["agent_info"]["Experiment"] = st.data_editor(
-            st.session_state["agent_info"]["Base"], num_rows="dynamic", key="edited_exp_agent_info_df_changes"
-        )
+        base_agent_info_file = st.file_uploader("Upload Base CSV", type="csv")
+        just_read_df = pd.read_csv(base_agent_info_file, index_col=0) if base_agent_info_file else None
+        base_agent_info_df = just_read_df if just_read_df is not None else pd.DataFrame(columns=AGENT_INFO_FIELDS)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("**📥 Base Agent Information**")
+            if not set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS):
+                st.error("The uploaded CSV file does not contain the required columns.")
+            else:
+                edited_base_df = st.data_editor(
+                    base_agent_info_df,
+                    num_rows="dynamic",
+                    key="edited_base_agent_info_df_changes",
+                    use_container_width=True,
+                    hide_index=False,
+                )
+                base_test_prompt = st.text_area(
+                    label="📝 Base Scenario Test Prompt",
+                    placeholder=(
+                        "Describe what you'd like to test with the base agents (you can use emojis like 🚀😊🔍)..."
+                    ),
+                    key="base_test_prompt",
+                )
+                st.caption(
+                    "This input will be used to define test conditions for the base scenario. Feel free to add emojis!"
+                )
+                selected_base_rows = st.session_state.get("edited_base_agent_info_df_changes", {}).get(
+                    "edited_rows", []
+                )
+                if selected_base_rows:
+                    for idx in selected_base_rows:
+                        edited_base_df.at[idx, "previous_tweets"] = base_test_prompt
+                    st.success(f"✅ Applied prompt to selected base row(s): {selected_base_rows}")
+                else:
+                    st.info("Please select at least one row in the table to apply the test prompt.")
+                st.session_state["agent_info"]["Base"] = edited_base_df
+
+        with col2:
+            st.markdown("**🧪 Experiment Agent Information**")
+            if "agent_info" not in st.session_state or "Base" not in st.session_state["agent_info"]:
+                st.info("Please upload and edit the Base Agent Information first.")
+                st.session_state["agent_info"]["Experiment"] = pd.DataFrame(columns=AGENT_INFO_FIELDS)
+            else:
+                edited_exp_df = st.data_editor(
+                    st.session_state["agent_info"]["Base"],
+                    num_rows="dynamic",
+                    key="edited_exp_agent_info_df_changes",
+                    use_container_width=True,
+                    hide_index=False,
+                )
+
+                experiment_test_prompt = st.text_area(
+                    label="📝 Experiment Scenario Test Prompt",
+                    placeholder="Describe your experimental test case here (emojis supported: 🤖💡⚔️)...",
+                    key="experiment_test_prompt",
+                )
+                st.caption(
+                    "This input defines the modifications or goals for the experimental setup. "
+                    "Express creatively with emojis!"
+                )
+                selected_exp_rows = st.session_state.get("edited_exp_agent_info_df_changes", {}).get("edited_rows", [])
+
+                if selected_exp_rows:
+                    for idx in selected_exp_rows:
+                        edited_exp_df.at[idx, "previous_tweets"] = experiment_test_prompt
+                    st.success(f"✅ Applied prompt to selected experiment row(s): {selected_exp_rows}")
+                else:
+                    st.info("Please select at least one row in the table to apply the test prompt.")
+                st.session_state["agent_info"]["Experiment"] = edited_exp_df
 
         st.multiselect(
             "Select Simulations to Run",
@@ -177,7 +236,6 @@ if __name__ == "__main__":
         )
 
         # Prepare simulation configurations based on UI selections
-
         st.number_input("Run for Timesteps", min_value=1, value=3, step=1, key="num_timesteps")
         if st.button("Run Selected Simulations"):
             simu_db_home = Path("./data/simu_db")
