@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-import networkx as nx
 import pandas as pd
 import plotly.express as px
 from pyvis.network import Network
@@ -75,38 +73,6 @@ def get_follower_trend(conn_base, conn_experiment, top_k=5):
 
 def plot_follower_growth(trend):
     fig = px.line(trend, x="day", y="cumulative", color="followee_id", title="Top Users' Follower Growth Over Time")
-    return fig
-
-
-def build_post_graph(conn_base, conn_experiment, root_post_id_base, root_post_id_experiment):
-    def fetch_post_edges(conn, root_post_id, source_label):
-        df = pd.read_sql_query(
-            "SELECT post_id, user_id, original_post_id FROM post WHERE original_post_id IS NOT NULL",
-            conn,
-        )
-        G_sub = nx.DiGraph()
-        stack = [root_post_id]
-        while stack:
-            current = stack.pop()
-            children = df[df["original_post_id"] == current]
-            for _, row in children.iterrows():
-                G_sub.add_edge(f"{source_label}_{current}", f"{source_label}_{row['post_id']}", source=source_label)
-                stack.append(row["post_id"])
-        return G_sub
-
-    G_base = fetch_post_edges(conn_base, root_post_id_base, "Base")
-    G_exp = fetch_post_edges(conn_experiment, root_post_id_experiment, "Experiment")
-    G_combined = nx.compose(G_base, G_exp)
-    return G_combined
-
-
-def plot_post_popularity_flow(G):
-    if G.number_of_nodes() == 0:
-        return None
-
-    pos = nx.spring_layout(G)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    nx.draw(G, pos, with_labels=True, node_color="skyblue", edge_color="gray", ax=ax)
     return fig
 
 

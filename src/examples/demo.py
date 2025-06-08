@@ -16,14 +16,12 @@ from stqdm import stqdm
 
 from oasis.social_platform.typing import ActionType
 from sonetsim.utils.animation import (
-    build_post_graph,
     build_repost_network,
     get_action_data,
     get_follower_trend,
     get_sentiment_timeline,
     plot_action_animation,
     plot_follower_growth,
-    plot_post_popularity_flow,
     plot_sentiment_timeline,
 )
 
@@ -285,7 +283,6 @@ if __name__ == "__main__":
         [
             "📊 Action Count Animation",
             "📈 Follower Trend",
-            "🔥 Post Popularity Flow",
             "🌐 Repost Network",
             "💬 Comment Sentiment Timeline",
         ],
@@ -312,17 +309,6 @@ if __name__ == "__main__":
         trend = get_follower_trend(conn_base, conn_experiment, top_k=top_k)
         fig = plot_follower_growth(trend)
         st.plotly_chart(fig, use_container_width=True)
-
-    elif chart_type == "🔥 Post Popularity Flow":
-        st.markdown("#### Post Popularity Tree")
-        post_id_base = st.number_input("Enter Base Root Post ID", min_value=0, value=1)
-        post_id_experiment = st.number_input("Enter Experiment Root Post ID", min_value=0, value=1)
-        G = build_post_graph(conn_base, conn_experiment, post_id_base, post_id_experiment)
-        fig = plot_post_popularity_flow(G)
-        if fig:
-            st.pyplot(fig)
-        else:
-            st.info("No reposts found for this post.")
 
     elif chart_type == "🌐 Repost Network":
         st.markdown("#### User Repost Network")
