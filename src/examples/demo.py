@@ -271,8 +271,10 @@ if __name__ == "__main__":
                 hide_index=False,
             )
 
-            # Store the edited dataframe in session state
-            st.session_state["agent_info"]["Base"] = edited_df
+            # Only update session state if the data_editor actually changed the data
+            # This prevents overwriting programmatically added posts
+            if not edited_df.equals(current_base_data):
+                st.session_state["agent_info"]["Base"] = edited_df
 
             user_sel_col, info_col = st.columns(2)
             with user_sel_col:
@@ -295,12 +297,13 @@ if __name__ == "__main__":
                     if not user_row.empty:
                         user_info = user_row.iloc[0]
 
-                    num_followers = int(user_info["num_followers"]) if pd.notna(user_info["num_followers"]) else 0
-                    num_following = int(user_info["num_following"]) if pd.notna(user_info["num_following"]) else 0
-                    st.markdown(f"Followers: *{num_followers}*")
-                    st.markdown(f"Following: *{num_following}*")
+                        num_followers = int(user_info["num_followers"]) if pd.notna(user_info["num_followers"]) else 0
+                        num_following = int(user_info["num_following"]) if pd.notna(user_info["num_following"]) else 0
+                        st.markdown(f"Followers: *{num_followers}*")
+                        st.markdown(f"Following: *{num_following}*")
                 with st.expander("##### ℹ️ Profile", expanded=True):
-                    st.text(user_info["description"])
+                    if not user_row.empty:
+                        st.text(user_info["description"])
 
                 # Show previous tweets if they exist (from session state)
                 current_user_data = st.session_state["agent_info"]["Base"][
@@ -325,19 +328,25 @@ if __name__ == "__main__":
                 )
 
                 if st.button("Post", type="secondary", key="post_button_base", icon="💬", use_container_width=True):
-                    # Find the user's index in the session state dataframe
-                    user_index = st.session_state["agent_info"]["Base"][
-                        st.session_state["agent_info"]["Base"]["name"] == posting_user_name
-                    ].index
-                    if len(user_index) > 0:
-                        idx = user_index[0]
-                        # Apply the post content to the selected user's previous_tweets
-                        st.session_state["agent_info"]["Base"].at[idx, "previous_tweets"].append(post_content)
-                        st.success(f"✅ Post created for {posting_user_name}!")
-                        # Force a rerun to refresh the data_editor
-                        st.rerun()
+                    if post_content.strip():  # Only post if content is not empty
+                        # Find the user's index in the session state dataframe
+                        user_index = st.session_state["agent_info"]["Base"][
+                            st.session_state["agent_info"]["Base"]["name"] == posting_user_name
+                        ].index
+                        if len(user_index) > 0:
+                            idx = user_index[0]
+                            # Apply the post content to the selected user's previous_tweets
+                            st.session_state["agent_info"]["Base"].at[idx, "previous_tweets"].append(post_content)
+                            st.success(f"✅ Post created for {posting_user_name}!")
+                            # Clear the text area by clearing session state for this key
+                            if "base_test_prompt" in st.session_state:
+                                del st.session_state["base_test_prompt"]
+                            # Force a rerun to refresh the data_editor
+                            st.rerun()
+                        else:
+                            st.error(f"❌ User {posting_user_name} not found in the table")
                     else:
-                        st.error(f"❌ User {posting_user_name} not found in the table")
+                        st.warning("⚠️ Please enter some content before posting")
 
     with col2:
         # Define prerequisite check function for experiment
@@ -368,8 +377,10 @@ if __name__ == "__main__":
                 hide_index=False,
             )
 
-            # Store the edited dataframe in session state
-            st.session_state["agent_info"]["Experiment"] = edited_df
+            # Only update session state if the data_editor actually changed the data
+            # This prevents overwriting programmatically added posts
+            if not edited_df.equals(current_experiment_data):
+                st.session_state["agent_info"]["Experiment"] = edited_df
 
             user_sel_col, info_col = st.columns(2)
             with user_sel_col:
@@ -388,12 +399,13 @@ if __name__ == "__main__":
                     if not user_row.empty:
                         user_info = user_row.iloc[0]
 
-                    num_followers = int(user_info["num_followers"]) if pd.notna(user_info["num_followers"]) else 0
-                    num_following = int(user_info["num_following"]) if pd.notna(user_info["num_following"]) else 0
-                    st.markdown(f"Followers: *{num_followers}*")
-                    st.markdown(f"Following: *{num_following}*")
+                        num_followers = int(user_info["num_followers"]) if pd.notna(user_info["num_followers"]) else 0
+                        num_following = int(user_info["num_following"]) if pd.notna(user_info["num_following"]) else 0
+                        st.markdown(f"Followers: *{num_followers}*")
+                        st.markdown(f"Following: *{num_following}*")
                 with st.expander("##### ℹ️ Profile", expanded=True):
-                    st.text(user_info["description"])
+                    if not user_row.empty:
+                        st.text(user_info["description"])
 
                 # Show previous tweets if they exist (from session state)
                 current_user_data = st.session_state["agent_info"]["Experiment"][
@@ -420,20 +432,25 @@ if __name__ == "__main__":
                 if st.button(
                     "Post", type="secondary", key="post_button_experiment", icon="💬", use_container_width=True
                 ):
-                    # Find the user's index in the session state dataframe
-                    user_index = st.session_state["agent_info"]["Experiment"][
-                        st.session_state["agent_info"]["Experiment"]["name"] == posting_user_name
-                    ].index
-                    if len(user_index) > 0:
-                        idx = user_index[0]
-                        # Apply the post content to the selected user's previous_tweets
-                        st.session_state["agent_info"]["Experiment"].at[idx, "previous_tweets"].append(post_content)
-                        print(st.session_state["agent_info"]["Experiment"].at[idx, "previous_tweets"])
-                        st.success(f"✅ Post created for {posting_user_name}!")
-                        # Force a rerun to refresh the data_editor
-                        st.rerun()
+                    if post_content.strip():  # Only post if content is not empty
+                        # Find the user's index in the session state dataframe
+                        user_index = st.session_state["agent_info"]["Experiment"][
+                            st.session_state["agent_info"]["Experiment"]["name"] == posting_user_name
+                        ].index
+                        if len(user_index) > 0:
+                            idx = user_index[0]
+                            # Apply the post content to the selected user's previous_tweets
+                            st.session_state["agent_info"]["Experiment"].at[idx, "previous_tweets"].append(post_content)
+                            st.success(f"✅ Post created for {posting_user_name}!")
+                            # Clear the text area by clearing session state for this key
+                            if "experiment_test_prompt" in st.session_state:
+                                del st.session_state["experiment_test_prompt"]
+                            # Force a rerun to refresh the data_editor
+                            st.rerun()
+                        else:
+                            st.error(f"❌ User {posting_user_name} not found in the table")
                     else:
-                        st.error(f"❌ User {posting_user_name} not found in the table")
+                        st.warning("⚠️ Please enter some content before posting")
 
     simu_sel_col, num_timesteps_col = st.columns(2)
     with simu_sel_col:
@@ -487,32 +504,6 @@ if __name__ == "__main__":
     # Frequency mapping for time-based analysis
     freq_map = {"hour": "H", "day": "D", "week": "W", "month": "M"}
 
-    simu_id_to_analyze = st.selectbox(
-        "Select Simulation to Analyze",
-        options=["Base", "Experiment"],
-        index=0,
-        key="simu_id_to_analyze",
-    )
-
-    # Use the current run's UUID if available, otherwise look for any matching files
-    if "current_run_uuid" in st.session_state:
-        run_uuid = st.session_state["current_run_uuid"]
-        db_path = Path(f"./data/simu_db/{simu_id_to_analyze}_{run_uuid}.db")
-    else:
-        # Fallback: look for any database file matching the simulation ID pattern
-        simu_db_home = Path("./data/simu_db")
-        pattern_files = list(simu_db_home.glob(f"{simu_id_to_analyze}_*.db"))
-        if pattern_files:
-            # Use the most recent file
-            db_path = max(pattern_files, key=lambda p: p.stat().st_mtime)
-            st.info(f"Using database: {db_path.name}")
-        else:
-            db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")  # Original fallback
-
-    if not db_path.exists():
-        st.error(f"Database {db_path} does not exist. Please run simulations first.")
-        st.stop()
-
     # For comparison analysis, we need both Base and Experiment databases
     # Get paths for both simulations for comparison visualizations
     db_path_base = None
@@ -551,8 +542,6 @@ if __name__ == "__main__":
     else:
         conn_base = sqlite3.connect(db_path_base)
         conn_experiment = sqlite3.connect(db_path_experiment)
-
-    st.subheader("📈 Behavior Analysis Dashboard")
 
     tab1, tab2, tab3, tab4 = st.tabs(
         ["📊 Action Count Animation", "📈 Follower Trend", "🌐 Repost Network", "💬 Comment Sentiment Timeline"]
