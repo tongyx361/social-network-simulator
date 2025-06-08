@@ -287,11 +287,21 @@ if __name__ == "__main__":
         selected_actions = st.multiselect(
             "Select Actions",
             ["like", "dislike", "comment", "follow", "repost"],
-            default=["like", "comment"],
+            default=["like", "comment", "follow", "repost"],
         )
 
         df_action = get_action_data(conn_base, conn_experiment, selected_actions)
         if df_action is not None:
+            st.markdown("#### 📊 Total Action Counts")
+            summary = (
+                df_action.groupby(["source", "action"])
+                .size()
+                .reset_index(name="count")
+                .pivot(index="action", columns="source", values="count")
+                .fillna(0)
+                .astype(int)
+            )
+            st.dataframe(summary, use_container_width=True)
             fig = plot_action_animation(df_action)
             st.plotly_chart(fig, use_container_width=True)
         else:
