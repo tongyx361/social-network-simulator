@@ -17,14 +17,12 @@ from stqdm import stqdm
 
 from oasis.social_platform.typing import ActionType
 from sonetsim.utils.animation import (
-    build_post_graph,
     build_repost_network,
     get_action_data,
     get_follower_trend,
     get_sentiment_timeline,
     plot_action_animation,
     plot_follower_growth,
-    plot_post_popularity_flow,
     plot_sentiment_timeline,
 )
 
@@ -486,6 +484,7 @@ if __name__ == "__main__":
 
     st.header("Analysis")
 
+    # Frequency mapping for time-based analysis
     freq_map = {"hour": "H", "day": "D", "week": "W", "month": "M"}
 
     simu_id_to_analyze = st.selectbox(
@@ -513,61 +512,91 @@ if __name__ == "__main__":
     if not db_path.exists():
         st.error(f"Database {db_path} does not exist. Please run simulations first.")
         st.stop()
-    conn = sqlite3.connect(db_path)
+
+    # For comparison analysis, we need both Base and Experiment databases
+    # Get paths for both simulations for comparison visualizations
+    db_path_base = None
+    db_path_experiment = None
+
+    if "current_run_uuid" in st.session_state:
+        run_uuid = st.session_state["current_run_uuid"]
+        db_path_base = Path(f"./data/simu_db/Base_{run_uuid}.db")
+        db_path_experiment = Path(f"./data/simu_db/Experiment_{run_uuid}.db")
+    else:
+        # Fallback: look for any database files matching the patterns
+        simu_db_home = Path("./data/simu_db")
+        base_files = list(simu_db_home.glob("Base_*.db"))
+        exp_files = list(simu_db_home.glob("Experiment_*.db"))
+
+        if base_files:
+            db_path_base = max(base_files, key=lambda p: p.stat().st_mtime)
+        else:
+            db_path_base = Path("./data/simu_db/Base.db")
+
+        if exp_files:
+            db_path_experiment = max(exp_files, key=lambda p: p.stat().st_mtime)
+        else:
+            db_path_experiment = Path("./data/simu_db/Experiment.db")
+
+    # Check if comparison databases exist for visualization
+    if not db_path_base.exists() or not db_path_experiment.exists():
+        st.warning(
+            "Both Base and Experiment databases are needed for comparison analysis. Some visualizations may not work."
+        )
+        # Create dummy connections for non-existent databases
+        conn_base = sqlite3.connect(":memory:") if not db_path_base.exists() else sqlite3.connect(db_path_base)
+        conn_experiment = (
+            sqlite3.connect(":memory:") if not db_path_experiment.exists() else sqlite3.connect(db_path_experiment)
+        )
+    else:
+        conn_base = sqlite3.connect(db_path_base)
+        conn_experiment = sqlite3.connect(db_path_experiment)
 
     st.subheader("📈 Behavior Analysis Dashboard")
 
-    chart_type = st.radio(
-        "Select Analysis Type",
-        [
-            "📊 Action Count Animation",
-            "📈 Follower Trend",
-            "🔥 Post Popularity Flow",
-            "🌐 Repost Network",
-            "💬 Comment Sentiment Timeline",
-        ],
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["📊 Action Count Animation", "📈 Follower Trend", "🌐 Repost Network", "💬 Comment Sentiment Timeline"]
     )
 
-    if chart_type == "📊 Action Count Animation":
+    with tab1:
         st.markdown("#### Action Count Animation")
         selected_actions = st.multiselect(
             "Select Actions",
             ["like", "dislike", "comment", "follow", "repost"],
-            default=["like", "comment"],
+            default=["like", "comment", "follow", "repost"],
         )
-        time_bin = st.selectbox("Time Bin", ["hour", "day", "week", "month"], index=1)
 
-        df_action = get_action_data(conn, selected_actions, freq_map[time_bin])
+        df_action = get_action_data(conn_base, conn_experiment, selected_actions)
         if df_action is not None:
+            st.markdown("#### 📊 Total Action Counts")
+            summary = (
+                df_action.groupby(["source", "action"])
+                .size()
+                .reset_index(name="count")
+                .pivot(index="action", columns="source", values="count")
+                .fillna(0)
+                .astype(int)
+            )
+            st.dataframe(summary, use_container_width=True)
             fig = plot_action_animation(df_action)
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.warning("No action data found for selected actions.")
 
-    elif chart_type == "📈 Follower Trend":
+    with tab2:
         st.markdown("#### Follower Growth Over Time")
         top_k = st.slider("Number of Top Users", 1, 20, 5)
-        trend = get_follower_trend(conn, top_k=top_k)
+        trend = get_follower_trend(conn_base, conn_experiment, top_k=top_k)
         fig = plot_follower_growth(trend)
         st.plotly_chart(fig, use_container_width=True)
 
-    elif chart_type == "🔥 Post Popularity Flow":
-        st.markdown("#### Post Popularity Tree")
-        post_id = st.number_input("Enter Root Post ID", min_value=0, value=1)
-        G = build_post_graph(conn, post_id)
-        fig = plot_post_popularity_flow(G)
-        if fig:
-            st.pyplot(fig)
-        else:
-            st.info("No reposts found for this post.")
-
-    elif chart_type == "🌐 Repost Network":
+    with tab3:
         st.markdown("#### User Repost Network")
-        path = build_repost_network(conn)
+        path = build_repost_network(conn_base, conn_experiment)
         components.html(open(path).read(), height=600)
 
-    elif chart_type == "💬 Comment Sentiment Timeline":
+    with tab4:
         st.markdown("#### Sentiment of Comments Over Time")
-        sentiment = get_sentiment_timeline(conn)
+        sentiment = get_sentiment_timeline(conn_base, conn_experiment)
         fig = plot_sentiment_timeline(sentiment)
         st.plotly_chart(fig, use_container_width=True)
