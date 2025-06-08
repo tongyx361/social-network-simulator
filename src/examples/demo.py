@@ -278,17 +278,11 @@ if __name__ == "__main__":
 
     st.subheader("📈 Behavior Analysis Dashboard")
 
-    chart_type = st.radio(
-        "Select Analysis Type",
-        [
-            "📊 Action Count Animation",
-            "📈 Follower Trend",
-            "🌐 Repost Network",
-            "💬 Comment Sentiment Timeline",
-        ],
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["📊 Action Count Animation", "📈 Follower Trend", "🌐 Repost Network", "💬 Comment Sentiment Timeline"]
     )
 
-    if chart_type == "📊 Action Count Animation":
+    with tab1:
         st.markdown("#### Action Count Animation")
         selected_actions = st.multiselect(
             "Select Actions",
@@ -303,19 +297,19 @@ if __name__ == "__main__":
         else:
             st.warning("No action data found for selected actions.")
 
-    elif chart_type == "📈 Follower Trend":
+    with tab2:
         st.markdown("#### Follower Growth Over Time")
         top_k = st.slider("Number of Top Users", 1, 20, 5)
         trend = get_follower_trend(conn_base, conn_experiment, top_k=top_k)
         fig = plot_follower_growth(trend)
         st.plotly_chart(fig, use_container_width=True)
 
-    elif chart_type == "🌐 Repost Network":
+    with tab3:
         st.markdown("#### User Repost Network")
         path = build_repost_network(conn_base, conn_experiment)
         components.html(open(path).read(), height=600)
 
-    elif chart_type == "💬 Comment Sentiment Timeline":
+    with tab4:
         st.markdown("#### Sentiment of Comments Over Time")
         sentiment = get_sentiment_timeline(conn_base, conn_experiment)
         fig = plot_sentiment_timeline(sentiment)

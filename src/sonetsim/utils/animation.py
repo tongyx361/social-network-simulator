@@ -120,7 +120,7 @@ def get_sentiment_timeline(conn_base, conn_experiment):
     def extract_sentiment(conn, label):
         df = pd.read_sql_query("SELECT comment_id, content, created_at FROM comment", conn)
         df["created_at"] = pd.to_datetime(df["created_at"])
-        df["day"] = df["created_at"].dt.to_period("D").dt.to_timestamp()
+        df["day"] = df["created_at"]
         df["polarity"] = df["content"].apply(lambda x: TextBlob(x).sentiment.polarity if x else 0)
         sentiment = df.groupby("day")["polarity"].mean().reset_index()
         sentiment["source"] = label
