@@ -55,10 +55,10 @@ async def simulate_twitter(config: SimulationConfig) -> None:
 
     start_time = 0
     clock = Clock(k=config.clock_factor)
-    twitter_channel = Channel()
+    channel = Channel()
     infra = Platform(
         db_path=config.db_path,
-        channel=twitter_channel,
+        channel=channel,
         sandbox_clock=clock,
         recsys_type=config.recsys_type,
         start_time=start_time,
@@ -78,7 +78,7 @@ async def simulate_twitter(config: SimulationConfig) -> None:
     # print(f"Generating agent graph with {config.agent_info=}")
     agent_graph = await generate_agents(
         agent_info=config.agent_info,
-        twitter_channel=twitter_channel,
+        channel=channel,
         start_time=start_time,
         model=models,
         recsys_type=config.recsys_type,
@@ -108,7 +108,7 @@ async def simulate_twitter(config: SimulationConfig) -> None:
             config.pbar.update(1)
 
     # print("Waiting for simulation to finish...")
-    await twitter_channel.write_to_receive_queue((None, None, ActionType.EXIT))
+    await channel.write_to_receive_queue((None, None, ActionType.EXIT))
     await twitter_task
 
 
