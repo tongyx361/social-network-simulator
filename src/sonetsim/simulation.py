@@ -1,8 +1,10 @@
+import ast
 import asyncio
 import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import IO
 
 import pandas as pd
 from camel.models import ModelFactory
@@ -17,6 +19,35 @@ from oasis.social_platform.platform import Platform
 from oasis.social_platform.typing import ActionType, RecsysType
 
 logger = logging.getLogger(__name__)
+
+
+AGENT_INFO_FIELDS = [
+    "name",
+    "num_followers",
+    "previous_tweets",
+    "user_char",
+    "description",
+    "user_id",
+    "username",
+    "following_agentid_list",
+]
+
+
+def read_agent_info(agent_info_path: Path | IO) -> pd.DataFrame:
+    agent_info_df = pd.read_csv(agent_info_path, index_col=0)
+    agent_info_df["user_id"] = agent_info_df["user_id"].astype(int)
+    agent_info_df["previous_tweets"] = agent_info_df["previous_tweets"].apply(ast.literal_eval)
+    agent_info_df["following_agentid_list"] = agent_info_df["following_agentid_list"].apply(ast.literal_eval)
+    agent_info_df["num_followers"] = 0
+    for idx, row in agent_info_df.iterrows():
+        following_ids = row["following_agentid_list"]
+        if following_ids is not None:
+            for following_id in following_ids:
+                agent_info_df.at[following_id, "num_followers"] += 1
+    agent_info_df = agent_info_df.sort_values(by="num_followers", ascending=False)
+    # Sort columns as AGENT_INFO_FIELDS
+    agent_info_df = agent_info_df[AGENT_INFO_FIELDS]
+    return agent_info_df
 
 
 @dataclass

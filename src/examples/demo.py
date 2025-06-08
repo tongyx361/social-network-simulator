@@ -45,7 +45,13 @@ def setup_debug_mode():
     importlib.reload(models)
 
 
-from sonetsim.simulation import ModelConfig, SimulationConfig, simulate_twitter  # noqa: E402
+from sonetsim.simulation import (  # noqa: E402
+    AGENT_INFO_FIELDS,
+    ModelConfig,
+    SimulationConfig,
+    read_agent_info,
+    simulate_twitter,
+)
 from sonetsim.utils.models import MODEL_PLATFORM2API_KEY_ENV_NAME  # noqa: E402
 
 
@@ -60,17 +66,6 @@ def toggle_debug_mode():
         disable_debug_mode()
 
 
-AGENT_INFO_FIELDS = [
-    "user_id",
-    "name",
-    "username",
-    "following_agentid_list",
-    "previous_tweets",
-    "user_char",
-    "description",
-]
-
-
 DEFAULT_AVAILABLE_ACTIONS = [
     ActionType.DO_NOTHING.value,
     ActionType.REPOST.value,
@@ -79,6 +74,7 @@ DEFAULT_AVAILABLE_ACTIONS = [
 ]
 
 STATE2DEFAULT: dict[str, Any] = {"simu_configs": None, "agent_info": {}}
+
 
 # NOTE: Setting `key` also sets `st.session_state[key]`
 if __name__ == "__main__":
@@ -157,8 +153,9 @@ if __name__ == "__main__":
         )
 
         base_agent_info_file = st.file_uploader("Upload Base CSV", type="csv")
-        just_read_df = pd.read_csv(base_agent_info_file, index_col=0) if base_agent_info_file else None
-        base_agent_info_df = just_read_df if just_read_df is not None else pd.DataFrame(columns=AGENT_INFO_FIELDS)
+        base_agent_info_df = (
+            read_agent_info(base_agent_info_file) if base_agent_info_file else pd.DataFrame(columns=AGENT_INFO_FIELDS)
+        )
 
         col1, col2 = st.columns(2)
 
