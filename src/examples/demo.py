@@ -267,19 +267,16 @@ if __name__ == "__main__":
 
     st.header("Analysis")
 
-    freq_map = {"hour": "H", "day": "D", "week": "W", "month": "M"}
-
-    simu_id_to_analyze = st.selectbox(
-        "Select Simulation to Analyze",
-        options=["Base", "Experiment"],
-        index=0,
-        key="simu_id_to_analyze",
-    )
-    db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")
-    if not db_path.exists():
-        st.error(f"Database {db_path} does not exist. Please run simulations first.")
+    db_path_base = Path("./data/simu_db/Base.db")
+    db_path_experiment = Path("./data/simu_db/Experiment.db")
+    if not db_path_base.exists():
+        st.error("Database Base does not exist. Please run simulations first.")
         st.stop()
-    conn = sqlite3.connect(db_path)
+    if not db_path_experiment.exists():
+        st.error("Database Experiment does not exist. Please run simulations first.")
+        st.stop()
+    conn_base = sqlite3.connect(db_path_base)
+    conn_experiment = sqlite3.connect(db_path_experiment)
 
     st.subheader("📈 Behavior Analysis Dashboard")
 
@@ -301,9 +298,8 @@ if __name__ == "__main__":
             ["like", "dislike", "comment", "follow", "repost"],
             default=["like", "comment"],
         )
-        time_bin = st.selectbox("Time Bin", ["hour", "day", "week", "month"], index=1)
 
-        df_action = get_action_data(conn, selected_actions, freq_map[time_bin])
+        df_action = get_action_data(conn_base, conn_experiment, selected_actions)
         if df_action is not None:
             fig = plot_action_animation(df_action)
             st.plotly_chart(fig, use_container_width=True)
@@ -313,14 +309,15 @@ if __name__ == "__main__":
     elif chart_type == "📈 Follower Trend":
         st.markdown("#### Follower Growth Over Time")
         top_k = st.slider("Number of Top Users", 1, 20, 5)
-        trend = get_follower_trend(conn, top_k=top_k)
+        trend = get_follower_trend(conn_base, conn_experiment, top_k=top_k)
         fig = plot_follower_growth(trend)
         st.plotly_chart(fig, use_container_width=True)
 
     elif chart_type == "🔥 Post Popularity Flow":
         st.markdown("#### Post Popularity Tree")
-        post_id = st.number_input("Enter Root Post ID", min_value=0, value=1)
-        G = build_post_graph(conn, post_id)
+        post_id_base = st.number_input("Enter Base Root Post ID", min_value=0, value=1)
+        post_id_experiment = st.number_input("Enter Experiment Root Post ID", min_value=0, value=1)
+        G = build_post_graph(conn_base, conn_experiment, post_id_base, post_id_experiment)
         fig = plot_post_popularity_flow(G)
         if fig:
             st.pyplot(fig)
@@ -329,11 +326,11 @@ if __name__ == "__main__":
 
     elif chart_type == "🌐 Repost Network":
         st.markdown("#### User Repost Network")
-        path = build_repost_network(conn)
+        path = build_repost_network(conn_base, conn_experiment)
         components.html(open(path).read(), height=600)
 
     elif chart_type == "💬 Comment Sentiment Timeline":
         st.markdown("#### Sentiment of Comments Over Time")
-        sentiment = get_sentiment_timeline(conn)
+        sentiment = get_sentiment_timeline(conn_base, conn_experiment)
         fig = plot_sentiment_timeline(sentiment)
         st.plotly_chart(fig, use_container_width=True)
