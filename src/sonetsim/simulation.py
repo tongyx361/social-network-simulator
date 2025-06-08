@@ -24,29 +24,102 @@ logger = logging.getLogger(__name__)
 AGENT_INFO_FIELDS = [
     "name",
     "num_followers",
+    "num_following",
     "previous_tweets",
-    "user_char",
     "description",
     "user_id",
     "username",
     "following_agentid_list",
+    "user_char",
 ]
 
 
 def read_agent_info(agent_info_path: Path | IO) -> pd.DataFrame:
-    agent_info_df = pd.read_csv(agent_info_path, index_col=0)
-    agent_info_df["user_id"] = agent_info_df["user_id"].astype(int)
-    agent_info_df["previous_tweets"] = agent_info_df["previous_tweets"].apply(ast.literal_eval)
-    agent_info_df["following_agentid_list"] = agent_info_df["following_agentid_list"].apply(ast.literal_eval)
+    """Read and process agent information from CSV file.
+
+    Args:
+        agent_info_path: Path to CSV file or file-like object
+
+    Returns:
+        Processed DataFrame with agent information
+
+    Raises:
+        ValueError: If required columns are missing or data format is invalid
+    """
+    try:
+        agent_info_df = pd.read_csv(agent_info_path, index_col=0)
+    except (ValueError, IndexError):
+        # Reset file pointer if it's a file-like object
+        if hasattr(agent_info_path, "seek"):
+            agent_info_path.seek(0)
+        agent_info_df = pd.read_csv(agent_info_path)
+
+    # Process user_id column - convert to int, handling NaN values
+    if "user_id" in agent_info_df.columns:
+        agent_info_df["user_id"] = pd.to_numeric(agent_info_df["user_id"], errors="coerce").fillna(0).astype(int)
+
+    # Process previous_tweets column - safely parse list strings
+    if "previous_tweets" in agent_info_df.columns:
+
+        def safe_parse_tweets(value):
+            if pd.isna(value) or value == "":
+                return []
+            if isinstance(value, list):
+                return value
+            try:
+                parsed = ast.literal_eval(str(value))
+                return parsed if isinstance(parsed, list) else []
+            except (ValueError, SyntaxError):
+                # If parsing fails, treat as a single tweet
+                return [str(value)] if str(value).strip() else []
+
+        agent_info_df["previous_tweets"] = agent_info_df["previous_tweets"].apply(safe_parse_tweets)
+
+    # Process following_agentid_list column - safely parse list of integers
+    if "following_agentid_list" in agent_info_df.columns:
+
+        def safe_parse_following(value):
+            if pd.isna(value) or value == "":
+                return []
+            if isinstance(value, list):
+                return [int(x) for x in value if str(x).strip().isdigit()]
+            try:
+                parsed = ast.literal_eval(str(value))
+                if isinstance(parsed, list):
+                    return [int(x) for x in parsed if str(x).strip().isdigit()]
+                elif str(parsed).strip().isdigit():
+                    return [int(parsed)]
+                else:
+                    return []
+            except (ValueError, SyntaxError):
+                return []
+
+        agent_info_df["following_agentid_list"] = agent_info_df["following_agentid_list"].apply(safe_parse_following)
+
+    # Calculate num_following from following_agentid_list
+    agent_info_df["num_following"] = agent_info_df["following_agentid_list"].apply(len)
+
+    # Initialize and calculate num_followers
     agent_info_df["num_followers"] = 0
     for idx, row in agent_info_df.iterrows():
         following_ids = row["following_agentid_list"]
-        if following_ids is not None:
+        if following_ids:
             for following_id in following_ids:
-                agent_info_df.at[following_id, "num_followers"] += 1
+                # Make sure the following_id exists in the dataframe
+                if following_id in agent_info_df.index:
+                    agent_info_df.at[following_id, "num_followers"] += 1
+
+    # Sort by followers (descending)
     agent_info_df = agent_info_df.sort_values(by="num_followers", ascending=False)
-    # Sort columns as AGENT_INFO_FIELDS
+
+    # Check if all required columns are present
+    missing_columns = set(AGENT_INFO_FIELDS) - set(agent_info_df.columns)
+    if missing_columns:
+        raise ValueError(f"Missing required columns: {missing_columns}")
+
+    # Ensure all required columns are present and in the right order
     agent_info_df = agent_info_df[AGENT_INFO_FIELDS]
+
     return agent_info_df
 
 

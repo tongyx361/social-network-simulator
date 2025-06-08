@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sqlite3
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -64,75 +65,6 @@ def toggle_debug_mode():
         setup_debug_mode()
     else:
         disable_debug_mode()
-
-
-def render_agent_info_editor(
-    scenario_name: str,
-    dataframe: pd.DataFrame,
-    data_editor_key: str,
-    text_area_key: str,
-    title: str,
-    prompt_label: str,
-    prompt_placeholder: str,
-    prompt_caption: str,
-    prerequisite_check_func=None,
-    prerequisite_message: str = "",
-):
-    """
-    Render a common agent information editor UI component.
-
-    Args:
-        scenario_name: Name of the scenario (e.g., "Base", "Experiment")
-        dataframe: DataFrame to edit
-        data_editor_key: Key for the data editor component
-        text_area_key: Key for the text area component
-        title: Title to display for this section
-        prompt_label: Label for the test prompt text area
-        prompt_placeholder: Placeholder text for the test prompt
-        prompt_caption: Caption/help text for the test prompt
-        prerequisite_check_func: Optional function to check prerequisites
-        prerequisite_message: Message to show when prerequisites aren't met
-
-    Returns:
-        Edited DataFrame or None if prerequisites not met
-    """
-    st.markdown(f"**{title}**")
-
-    # Check prerequisites if provided
-    if prerequisite_check_func and not prerequisite_check_func():
-        st.info(prerequisite_message)
-        st.session_state["agent_info"][scenario_name] = pd.DataFrame(columns=AGENT_INFO_FIELDS)
-        return None
-
-    # Render data editor
-    edited_df = st.data_editor(
-        dataframe,
-        num_rows="dynamic",
-        key=data_editor_key,
-        use_container_width=True,
-        hide_index=False,
-    )
-
-    # Render test prompt text area
-    test_prompt = st.text_area(
-        label=prompt_label,
-        placeholder=prompt_placeholder,
-        key=text_area_key,
-    )
-    st.caption(prompt_caption)
-
-    # Handle selected rows and apply prompt
-    selected_rows = st.session_state.get(data_editor_key, {}).get("edited_rows", [])
-    if selected_rows:
-        for idx in selected_rows:
-            edited_df.at[idx, "previous_tweets"] = test_prompt
-        st.success(f"✅ Applied prompt to selected {scenario_name.lower()} row(s): {selected_rows}")
-    else:
-        st.info("Please select at least one row in the table to apply the test prompt.")
-
-    # Store in session state
-    st.session_state["agent_info"][scenario_name] = edited_df
-    return edited_df
 
 
 DEFAULT_AVAILABLE_ACTIONS = [
@@ -212,60 +144,301 @@ if __name__ == "__main__":
             value=os.environ.get("DEBUG", "false").lower() == "true",
         )
 
-    with st.expander("🔮 Simulation Settings: Compare Base vs. Experiment", expanded=True):
-        st.markdown(
-            """
-            Upload the agent information for your **Base** simulation on the left.
-            On the right, you can edit the **Experiment** configuration derived from the base.
-            This allows you to easily compare and adjust settings between the two scenarios.
-            """
+    st.header("🔮 Simulation Settings: Compare Base vs. Experiment")
+    st.markdown(
+        """
+        Upload the agent information for your **Base** simulation on the left.
+        On the right, you can edit the **Experiment** configuration derived from the base.
+        This allows you to easily compare and adjust settings between the two scenarios.
+        """
+    )
+
+    with st.expander("📋 CSV Template & Format Guide", expanded=False):
+        # Provide local file data/agent_info/False_Business_0.csv
+        st.download_button(
+            label="📥 Download Example CSV",
+            data=open("data/agent_info/False_Business_0.csv", "rb").read(),
+            file_name="False_Business_0.csv",
+            mime="text/csv",
+            help="Download this example CSV file to get started",
         )
+        st.markdown("**Sample CSV Template:**")
 
-        base_agent_info_file = st.file_uploader("Upload Base CSV", type="csv")
-        base_agent_info_df = (
-            read_agent_info(base_agent_info_file) if base_agent_info_file else pd.DataFrame(columns=AGENT_INFO_FIELDS)
+        # Create a sample dataframe for demonstration
+        sample_data = {
+            "name": ["Alice", "Bob", "Charlie"],
+            "previous_tweets": ['["Hello world!", "Good morning!"]', '["Nice day today"]', "[]"],
+            "description": [
+                "Tech enthusiast and coffee lover",
+                "Sports fan and weekend hiker",
+                "Artist and creative writer",
+            ],
+            "user_id": [0, 1, 2],
+            "username": ["alice_tech", "bob_sports", "charlie_art"],
+            "following_agentid_list": ["[1, 2]", "[0]", "[]"],
+            "user_char": ["Optimistic and tech-savvy", "Outgoing and athletic", "Creative and introspective"],
+        }
+
+        sample_df = pd.DataFrame(sample_data)
+        st.dataframe(sample_df, use_container_width=True)
+
+        st.markdown("""
+        **Important Notes:**
+        - `previous_tweets` and `following_agentid_list` should be formatted as Python lists (use quotes and brackets)
+        - `user_id` should be unique integers starting from 0
+        - `num_followers` and `num_following` will be automatically calculated based on `following_agentid_list`
+        """)
+
+    base_agent_info_file = st.file_uploader("Upload Base CSV", type="csv")
+
+    # Handle file loading with proper error handling
+    if base_agent_info_file:
+        try:
+            base_agent_info_df = read_agent_info(base_agent_info_file)
+            st.session_state["agent_info"]["Base"] = base_agent_info_df.copy()
+            st.session_state["agent_info"]["Experiment"] = base_agent_info_df.copy()
+        except Exception as e:
+            st.error(f"Error reading CSV file: {str(e)}")
+            st.markdown(
+                """
+            **Expected CSV format:**
+            - Columns: {columns}
+            - `previous_tweets`: List of strings, e.g., `["tweet1", "tweet2"]` or `[]`
+            - `following_agentid_list`: List of integers, e.g., `[1, 2, 3]` or `[]`
+            - `user_id`: Integer values
+            """.format(columns=", ".join(AGENT_INFO_FIELDS))
+            )
+            base_agent_info_df = pd.DataFrame(columns=AGENT_INFO_FIELDS)
+    else:
+        # Provide a default set of agents for testing
+        st.info(
+            "💡 No CSV uploaded. Using default agent set for testing. You can edit these or upload your own CSV above."
         )
+        default_data = {
+            "name": ["Alice Cooper", "Bob Johnson", "Charlie Smith"],
+            "num_followers": [0, 0, 0],  # Will be calculated
+            "num_following": [0, 0, 0],  # Will be calculated
+            "previous_tweets": [
+                ["Hello everyone! Excited to be here.", "Having a great day!"],
+                ["Welcome to my profile!", "Love connecting with new people."],
+                ["Creative minds think alike!", "Art is everywhere."],
+            ],
+            "description": [
+                "Tech enthusiast and coffee lover. Always learning something new!",
+                "Sports fan and weekend hiker. Life is an adventure!",
+                "Artist and creative writer. Finding beauty in everyday moments.",
+            ],
+            "user_id": [0, 1, 2],
+            "username": ["alice_tech", "bob_sports", "charlie_art"],
+            "following_agentid_list": [[1, 2], [0], []],
+            "user_char": [
+                "Optimistic, tech-savvy, and always eager to help others",
+                "Outgoing, athletic, and loves outdoor activities",
+                "Creative, introspective, and passionate about arts",
+            ],
+        }
 
-        col1, col2 = st.columns(2)
+        base_agent_info_df = pd.DataFrame(default_data)
+        # Process the default data through the same pipeline
+        base_agent_info_df["num_following"] = base_agent_info_df["following_agentid_list"].apply(len)
+        base_agent_info_df["num_followers"] = 0
+        for idx, row in base_agent_info_df.iterrows():
+            following_ids = row["following_agentid_list"]
+            if following_ids:
+                for following_id in following_ids:
+                    if following_id in base_agent_info_df.index:
+                        base_agent_info_df.at[following_id, "num_followers"] += 1
 
-        with col1:
-            # Handle base agent information with validation
-            if not set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS):
-                st.markdown("**📥 Base Agent Information**")
-                st.error("The uploaded CSV file does not contain the required columns.")
-            else:
-                render_agent_info_editor(
-                    scenario_name="Base",
-                    dataframe=base_agent_info_df,
-                    data_editor_key="edited_base_agent_info_df_changes",
-                    text_area_key="base_test_prompt",
-                    title="📥 Base Agent Information",
-                    prompt_label="📝 Base Scenario Test Prompt",
-                    prompt_placeholder="Describe what you'd like to test with the base agents "
-                    "(you can use emojis like 🚀😊🔍)...",
-                    prompt_caption="This input will be used to define test conditions for the base scenario. "
-                    "Feel free to add emojis!",
-                )
+    col1, col2 = st.columns(2)
 
-        with col2:
-            # Define prerequisite check function for experiment
-            def check_base_prerequisites():
-                return "agent_info" in st.session_state and "Base" in st.session_state["agent_info"]
+    with col1:
+        # Handle base agent information with validation
+        st.markdown("### 📥 Base")
+        if not set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS):
+            st.error("The uploaded CSV file does not contain the required columns.")
+        else:
+            # Initialize base dataframe in session state if not already present
+            if "Base" not in st.session_state["agent_info"]:
+                st.session_state["agent_info"]["Base"] = base_agent_info_df.copy()
 
-            render_agent_info_editor(
-                scenario_name="Experiment",
-                dataframe=st.session_state["agent_info"].get("Base", pd.DataFrame(columns=AGENT_INFO_FIELDS)),
-                data_editor_key="edited_exp_agent_info_df_changes",
-                text_area_key="experiment_test_prompt",
-                title="🧪 Experiment Agent Information",
-                prompt_label="📝 Experiment Scenario Test Prompt",
-                prompt_placeholder="Describe your experimental test case here (emojis supported: 🤖💡⚔️)...",
-                prompt_caption="This input defines the modifications or goals for the experimental setup. "
-                "Express creatively with emojis!",
-                prerequisite_check_func=check_base_prerequisites,
-                prerequisite_message="Please upload and edit the Base Agent Information first.",
+            # Use the current session state data for the data_editor
+            current_base_data = st.session_state["agent_info"]["Base"]
+
+            # Render data editor with current session state data
+            edited_df = st.data_editor(
+                current_base_data,
+                num_rows="dynamic",
+                key="edited_base_agent_info_df_changes",
+                use_container_width=True,
+                hide_index=False,
             )
 
+            # Store the edited dataframe in session state
+            st.session_state["agent_info"]["Base"] = edited_df
+
+            user_sel_col, info_col = st.columns(2)
+            with user_sel_col:
+                posting_user_name = st.selectbox(
+                    "Select User to Post",
+                    options=st.session_state["agent_info"]["Base"]["name"].tolist()
+                    if not st.session_state["agent_info"]["Base"].empty
+                    else [],
+                    key="posting_user_base",
+                    help="Choose which user will create the post",
+                )
+
+            # Show user information and posting interface after user selection
+            if posting_user_name:
+                # Get user information from session state dataframe
+                user_row = st.session_state["agent_info"]["Base"][
+                    st.session_state["agent_info"]["Base"]["name"] == posting_user_name
+                ]
+                with info_col:
+                    if not user_row.empty:
+                        user_info = user_row.iloc[0]
+
+                    num_followers = int(user_info["num_followers"]) if pd.notna(user_info["num_followers"]) else 0
+                    num_following = int(user_info["num_following"]) if pd.notna(user_info["num_following"]) else 0
+                    st.markdown(f"Followers: *{num_followers}*")
+                    st.markdown(f"Following: *{num_following}*")
+                with st.expander("##### ℹ️ Profile", expanded=True):
+                    st.text(user_info["description"])
+
+                # Show previous tweets if they exist (from session state)
+                current_user_data = st.session_state["agent_info"]["Base"][
+                    st.session_state["agent_info"]["Base"]["name"] == posting_user_name
+                ]
+                if not current_user_data.empty:
+                    current_tweets = current_user_data.iloc[0]["previous_tweets"]
+                    if isinstance(current_tweets, list) and len(current_tweets) > 0:
+                        with st.expander("##### 📋 Previous Posts", expanded=True):
+                            for tweet in reversed(current_tweets):
+                                st.info(tweet)
+                    else:
+                        st.text("##### 📭 No previous posts")
+
+                st.divider()
+
+                post_content = st.text_area(
+                    label="Post Content",
+                    placeholder="Input your base test case here...",
+                    key="base_test_prompt",
+                    help="Enter the content for the post",
+                )
+
+                if st.button("Post", type="secondary", key="post_button_base", icon="💬", use_container_width=True):
+                    # Find the user's index in the session state dataframe
+                    user_index = st.session_state["agent_info"]["Base"][
+                        st.session_state["agent_info"]["Base"]["name"] == posting_user_name
+                    ].index
+                    if len(user_index) > 0:
+                        idx = user_index[0]
+                        # Apply the post content to the selected user's previous_tweets
+                        st.session_state["agent_info"]["Base"].at[idx, "previous_tweets"].append(post_content)
+                        st.success(f"✅ Post created for {posting_user_name}!")
+                        # Force a rerun to refresh the data_editor
+                        st.rerun()
+                    else:
+                        st.error(f"❌ User {posting_user_name} not found in the table")
+
+    with col2:
+        # Define prerequisite check function for experiment
+        def check_base_prerequisites():
+            return "agent_info" in st.session_state and "Base" in st.session_state["agent_info"]
+
+        # Inlined render_agent_info_editor for Experiment scenario
+        st.markdown("### 🧪 Experiment")
+
+        # Check prerequisites
+        if not check_base_prerequisites():
+            st.info("Please upload and edit the Base Agent Information first.")
+            st.session_state["agent_info"]["Experiment"] = pd.DataFrame(columns=AGENT_INFO_FIELDS)
+        else:
+            # Initialize experiment dataframe from Base if not already in session state
+            if "Experiment" not in st.session_state["agent_info"]:
+                st.session_state["agent_info"]["Experiment"] = st.session_state["agent_info"]["Base"].copy()
+
+            # Use the current session state data for the data_editor
+            current_experiment_data = st.session_state["agent_info"]["Experiment"]
+
+            # Render data editor with current session state data
+            edited_df = st.data_editor(
+                current_experiment_data,
+                num_rows="dynamic",
+                key="edited_exp_agent_info_df_changes",
+                use_container_width=True,
+                hide_index=False,
+            )
+
+            # Store the edited dataframe in session state
+            st.session_state["agent_info"]["Experiment"] = edited_df
+
+            user_sel_col, info_col = st.columns(2)
+            with user_sel_col:
+                posting_user_name = st.selectbox(
+                    "Select User to Post",
+                    options=current_experiment_data["name"].tolist() if not current_experiment_data.empty else [],
+                    key="posting_user_experiment",
+                    help="Choose which user will create the post",
+                )
+
+            # Show user information and posting interface after user selection
+            if posting_user_name:
+                # Get user information from current session state data
+                user_row = current_experiment_data[current_experiment_data["name"] == posting_user_name]
+                with info_col:
+                    if not user_row.empty:
+                        user_info = user_row.iloc[0]
+
+                    num_followers = int(user_info["num_followers"]) if pd.notna(user_info["num_followers"]) else 0
+                    num_following = int(user_info["num_following"]) if pd.notna(user_info["num_following"]) else 0
+                    st.markdown(f"Followers: *{num_followers}*")
+                    st.markdown(f"Following: *{num_following}*")
+                with st.expander("##### ℹ️ Profile", expanded=True):
+                    st.text(user_info["description"])
+
+                # Show previous tweets if they exist (from session state)
+                current_user_data = st.session_state["agent_info"]["Experiment"][
+                    st.session_state["agent_info"]["Experiment"]["name"] == posting_user_name
+                ]
+                if not current_user_data.empty:
+                    current_tweets = current_user_data.iloc[0]["previous_tweets"]
+                    if isinstance(current_tweets, list) and len(current_tweets) > 0:
+                        with st.expander("##### 📋 Previous Posts", expanded=True):
+                            for tweet in reversed(current_tweets):
+                                st.info(tweet)
+                    else:
+                        st.text("##### 📭 No previous posts")
+
+                st.divider()
+
+                post_content = st.text_area(
+                    label="Post Content",
+                    placeholder="Input your experimental test case here...",
+                    key="experiment_test_prompt",
+                    help="Enter the content for the post",
+                )
+
+                if st.button(
+                    "Post", type="secondary", key="post_button_experiment", icon="💬", use_container_width=True
+                ):
+                    # Find the user's index in the session state dataframe
+                    user_index = st.session_state["agent_info"]["Experiment"][
+                        st.session_state["agent_info"]["Experiment"]["name"] == posting_user_name
+                    ].index
+                    if len(user_index) > 0:
+                        idx = user_index[0]
+                        # Apply the post content to the selected user's previous_tweets
+                        st.session_state["agent_info"]["Experiment"].at[idx, "previous_tweets"].append(post_content)
+                        print(st.session_state["agent_info"]["Experiment"].at[idx, "previous_tweets"])
+                        st.success(f"✅ Post created for {posting_user_name}!")
+                        # Force a rerun to refresh the data_editor
+                        st.rerun()
+                    else:
+                        st.error(f"❌ User {posting_user_name} not found in the table")
+
+    simu_sel_col, num_timesteps_col = st.columns(2)
+    with simu_sel_col:
         st.multiselect(
             "Select Simulations to Run",
             default=["Base", "Experiment"],
@@ -273,35 +446,43 @@ if __name__ == "__main__":
             key="selected_simulation_ids",
         )
 
-        # Prepare simulation configurations based on UI selections
+    with num_timesteps_col:
         st.number_input("Run for Timesteps", min_value=1, value=3, step=1, key="num_timesteps")
-        if st.button("Run Selected Simulations"):
-            simu_db_home = Path("./data/simu_db")
-            viz_home = Path("./data/visualization")
 
-            simu_configs: list[SimulationConfig] = []
-            for simu_id in st.session_state["selected_simulation_ids"]:
-                simu_config = SimulationConfig(
-                    model_config=ModelConfig(
-                        model_platform=ModelPlatformType(st.session_state["model_platform"]),
-                        model_type=ModelType(st.session_state["model_type"]),
-                    ),
-                    agent_info=st.session_state["agent_info"][simu_id],
-                    available_actions=st.session_state["available_actions"],
-                    db_path=simu_db_home / f"{simu_id}.db",
-                    visualization_home=viz_home / simu_id,
-                    num_timesteps=st.session_state["num_timesteps"],
-                    pbar=stqdm(desc=f"Simulating {simu_id}", total=st.session_state["num_timesteps"]),
-                )
-                simu_configs.append(simu_config)
+    if st.button("Simulate", use_container_width=True, type="primary", icon="🚀"):
+        simu_db_home = Path("./data/simu_db")
+        viz_home = Path("./data/visualization")
 
-            loop = asyncio.get_event_loop()
-            try:
-                loop.run_until_complete(asyncio.gather(*[simulate_twitter(config) for config in simu_configs]))
-            except Exception as e:
-                st.error(f"Error running simulations: {e}")
-                raise e
-            st.success("Simulations completed successfully")
+        # Generate unique UUID for this simulation run
+        run_uuid = str(uuid.uuid4())[:8]  # Use first 8 characters for brevity
+
+        simu_configs: list[SimulationConfig] = []
+        for simu_id in st.session_state["selected_simulation_ids"]:
+            simu_config = SimulationConfig(
+                model_config=ModelConfig(
+                    model_platform=ModelPlatformType(st.session_state["model_platform"]),
+                    model_type=ModelType(st.session_state["model_type"]),
+                ),
+                agent_info=st.session_state["agent_info"][simu_id],
+                available_actions=st.session_state["available_actions"],
+                db_path=simu_db_home / f"{simu_id}_{run_uuid}.db",
+                visualization_home=viz_home / f"{simu_id}_{run_uuid}",
+                num_timesteps=st.session_state["num_timesteps"],
+                pbar=stqdm(desc=f"Simulating {simu_id}", total=st.session_state["num_timesteps"]),
+            )
+            simu_configs.append(simu_config)
+
+        # Store the run UUID and simulation configs for later analysis
+        st.session_state["current_run_uuid"] = run_uuid
+        st.session_state["simu_configs"] = simu_configs
+
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(asyncio.gather(*[simulate_twitter(config) for config in simu_configs]))
+        except Exception as e:
+            st.error(f"Error running simulations: {e}")
+            raise e
+        st.success("Simulations completed successfully")
 
     st.header("Analysis")
 
@@ -313,7 +494,22 @@ if __name__ == "__main__":
         index=0,
         key="simu_id_to_analyze",
     )
-    db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")
+
+    # Use the current run's UUID if available, otherwise look for any matching files
+    if "current_run_uuid" in st.session_state:
+        run_uuid = st.session_state["current_run_uuid"]
+        db_path = Path(f"./data/simu_db/{simu_id_to_analyze}_{run_uuid}.db")
+    else:
+        # Fallback: look for any database file matching the simulation ID pattern
+        simu_db_home = Path("./data/simu_db")
+        pattern_files = list(simu_db_home.glob(f"{simu_id_to_analyze}_*.db"))
+        if pattern_files:
+            # Use the most recent file
+            db_path = max(pattern_files, key=lambda p: p.stat().st_mtime)
+            st.info(f"Using database: {db_path.name}")
+        else:
+            db_path = Path(f"./data/simu_db/{simu_id_to_analyze}.db")  # Original fallback
+
     if not db_path.exists():
         st.error(f"Database {db_path} does not exist. Please run simulations first.")
         st.stop()
