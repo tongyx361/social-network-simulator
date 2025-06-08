@@ -66,6 +66,75 @@ def toggle_debug_mode():
         disable_debug_mode()
 
 
+def render_agent_info_editor(
+    scenario_name: str,
+    dataframe: pd.DataFrame,
+    data_editor_key: str,
+    text_area_key: str,
+    title: str,
+    prompt_label: str,
+    prompt_placeholder: str,
+    prompt_caption: str,
+    prerequisite_check_func=None,
+    prerequisite_message: str = "",
+):
+    """
+    Render a common agent information editor UI component.
+
+    Args:
+        scenario_name: Name of the scenario (e.g., "Base", "Experiment")
+        dataframe: DataFrame to edit
+        data_editor_key: Key for the data editor component
+        text_area_key: Key for the text area component
+        title: Title to display for this section
+        prompt_label: Label for the test prompt text area
+        prompt_placeholder: Placeholder text for the test prompt
+        prompt_caption: Caption/help text for the test prompt
+        prerequisite_check_func: Optional function to check prerequisites
+        prerequisite_message: Message to show when prerequisites aren't met
+
+    Returns:
+        Edited DataFrame or None if prerequisites not met
+    """
+    st.markdown(f"**{title}**")
+
+    # Check prerequisites if provided
+    if prerequisite_check_func and not prerequisite_check_func():
+        st.info(prerequisite_message)
+        st.session_state["agent_info"][scenario_name] = pd.DataFrame(columns=AGENT_INFO_FIELDS)
+        return None
+
+    # Render data editor
+    edited_df = st.data_editor(
+        dataframe,
+        num_rows="dynamic",
+        key=data_editor_key,
+        use_container_width=True,
+        hide_index=False,
+    )
+
+    # Render test prompt text area
+    test_prompt = st.text_area(
+        label=prompt_label,
+        placeholder=prompt_placeholder,
+        key=text_area_key,
+    )
+    st.caption(prompt_caption)
+
+    # Handle selected rows and apply prompt
+    selected_rows = st.session_state.get(data_editor_key, {}).get("edited_rows", [])
+    if selected_rows:
+        for idx in selected_rows:
+            edited_df.at[idx, "previous_tweets"] = test_prompt
+        st.success(f"✅ Applied prompt to selected {scenario_name.lower()} row(s): {selected_rows}")
+    else:
+        st.info("Please select at least one row in the table to apply the test prompt.")
+
+    # Store in session state
+    st.session_state["agent_info"][scenario_name] = edited_df
+    return edited_df
+
+
 DEFAULT_AVAILABLE_ACTIONS = [
     ActionType.DO_NOTHING.value,
     ActionType.REPOST.value,
@@ -160,70 +229,42 @@ if __name__ == "__main__":
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("**📥 Base Agent Information**")
+            # Handle base agent information with validation
             if not set(base_agent_info_df.columns) == set(AGENT_INFO_FIELDS):
+                st.markdown("**📥 Base Agent Information**")
                 st.error("The uploaded CSV file does not contain the required columns.")
             else:
-                edited_base_df = st.data_editor(
-                    base_agent_info_df,
-                    num_rows="dynamic",
-                    key="edited_base_agent_info_df_changes",
-                    use_container_width=True,
-                    hide_index=False,
+                render_agent_info_editor(
+                    scenario_name="Base",
+                    dataframe=base_agent_info_df,
+                    data_editor_key="edited_base_agent_info_df_changes",
+                    text_area_key="base_test_prompt",
+                    title="📥 Base Agent Information",
+                    prompt_label="📝 Base Scenario Test Prompt",
+                    prompt_placeholder="Describe what you'd like to test with the base agents "
+                    "(you can use emojis like 🚀😊🔍)...",
+                    prompt_caption="This input will be used to define test conditions for the base scenario. "
+                    "Feel free to add emojis!",
                 )
-                base_test_prompt = st.text_area(
-                    label="📝 Base Scenario Test Prompt",
-                    placeholder=(
-                        "Describe what you'd like to test with the base agents (you can use emojis like 🚀😊🔍)..."
-                    ),
-                    key="base_test_prompt",
-                )
-                st.caption(
-                    "This input will be used to define test conditions for the base scenario. Feel free to add emojis!"
-                )
-                selected_base_rows = st.session_state.get("edited_base_agent_info_df_changes", {}).get(
-                    "edited_rows", []
-                )
-                if selected_base_rows:
-                    for idx in selected_base_rows:
-                        edited_base_df.at[idx, "previous_tweets"] = base_test_prompt
-                    st.success(f"✅ Applied prompt to selected base row(s): {selected_base_rows}")
-                else:
-                    st.info("Please select at least one row in the table to apply the test prompt.")
-                st.session_state["agent_info"]["Base"] = edited_base_df
 
         with col2:
-            st.markdown("**🧪 Experiment Agent Information**")
-            if "agent_info" not in st.session_state or "Base" not in st.session_state["agent_info"]:
-                st.info("Please upload and edit the Base Agent Information first.")
-                st.session_state["agent_info"]["Experiment"] = pd.DataFrame(columns=AGENT_INFO_FIELDS)
-            else:
-                edited_exp_df = st.data_editor(
-                    st.session_state["agent_info"]["Base"],
-                    num_rows="dynamic",
-                    key="edited_exp_agent_info_df_changes",
-                    use_container_width=True,
-                    hide_index=False,
-                )
+            # Define prerequisite check function for experiment
+            def check_base_prerequisites():
+                return "agent_info" in st.session_state and "Base" in st.session_state["agent_info"]
 
-                experiment_test_prompt = st.text_area(
-                    label="📝 Experiment Scenario Test Prompt",
-                    placeholder="Describe your experimental test case here (emojis supported: 🤖💡⚔️)...",
-                    key="experiment_test_prompt",
-                )
-                st.caption(
-                    "This input defines the modifications or goals for the experimental setup. "
-                    "Express creatively with emojis!"
-                )
-                selected_exp_rows = st.session_state.get("edited_exp_agent_info_df_changes", {}).get("edited_rows", [])
-
-                if selected_exp_rows:
-                    for idx in selected_exp_rows:
-                        edited_exp_df.at[idx, "previous_tweets"] = experiment_test_prompt
-                    st.success(f"✅ Applied prompt to selected experiment row(s): {selected_exp_rows}")
-                else:
-                    st.info("Please select at least one row in the table to apply the test prompt.")
-                st.session_state["agent_info"]["Experiment"] = edited_exp_df
+            render_agent_info_editor(
+                scenario_name="Experiment",
+                dataframe=st.session_state["agent_info"].get("Base", pd.DataFrame(columns=AGENT_INFO_FIELDS)),
+                data_editor_key="edited_exp_agent_info_df_changes",
+                text_area_key="experiment_test_prompt",
+                title="🧪 Experiment Agent Information",
+                prompt_label="📝 Experiment Scenario Test Prompt",
+                prompt_placeholder="Describe your experimental test case here (emojis supported: 🤖💡⚔️)...",
+                prompt_caption="This input defines the modifications or goals for the experimental setup. "
+                "Express creatively with emojis!",
+                prerequisite_check_func=check_base_prerequisites,
+                prerequisite_message="Please upload and edit the Base Agent Information first.",
+            )
 
         st.multiselect(
             "Select Simulations to Run",
