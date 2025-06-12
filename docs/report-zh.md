@@ -83,6 +83,57 @@ flowchart TD
     - `plotly`：趋势图
     - `pyvis`：社交网络图
 
+## 效果测评
+
+为了测试 SoNetSim 项目是否能为用户挑选更受欢迎的推文，我们根据人类偏好，构建了一系列 <更受欢迎的推文，不受欢迎的推文> 数据对，保持其他条件相同，使用  SoNetSim 来模拟两种推文的传播效果，下面是一些示例。
+
+### 场景一：推销新歌
+
+|        | 受欢迎的推文                                                 | 不受欢迎的推文                                               | $\Delta$ |
+| ------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- |
+|        | Hey everyone! 🎶 Excited to share my new song "Dream Chaser"! 🚀 It's a journey of hope and perseverance. Give it a listen and let me know what you think! #NewSong #Music #SupportLocalArtists | Just putting my new song out there. It's okay, I guess. If you want to listen, the link is below. No pressure. #Music #NewSong |          |
+| Follow | 31                                                           | 22                                                           | +8       |
+| Like   | 8                                                            | 4                                                            | +4       |
+| Repost | 33                                                           | 26                                                           | +7       |
+
+### 场景二：讨论游戏
+
+|        | 受欢迎的推文                                                 | 不受欢迎的推文                                      | $\Delta$ |
+| ------ | ------------------------------------------------------------ | --------------------------------------------------- | -------- |
+|        | Just finished playing Minecraft and I'm blown away! 🎮 The graphics are stunning, and the storyline is super engaging. Can't wait to see what happens next! What do you guys think? #Gaming #GameReview #BestGameEver | Played Minecraft today. It was okay. Not bad. #Game |          |
+| Follow | 53                                                           | 53                                                  | 0        |
+| Like   | 340                                                          | 334                                                 | +6       |
+| Repost | 272                                                          | 270                                                 | +2       |
+
+### 场景三：医疗问题
+
+|        | 受欢迎的推文                                                 | 不受欢迎的推文                                               | $\Delta$ |
+| ------ | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- |
+|        | Just read an amazing article about the latest breakthroughs in cancer treatment! 🌟 The advancements in immunotherapy are giving so much hope to patients and their families. Let's spread awareness and support research! #CancerAwareness #MedicalBreakthrough #Health | I don't get why people are so worried about vaccines. They're fine. #Medical |          |
+| Follow | 129                                                          | 130                                                          | -1       |
+| Like   | 325                                                          | 313                                                          | +12      |
+| Repost | 267                                                          | 251                                                          | +16      |
+
+### 场景四：新品运动鞋发布
+
+|        | 受欢迎的推文                                                 | 不受欢迎的推文                                         | $\Delta$ |
+| ------ | ------------------------------------------------------------ | ------------------------------------------------------ | -------- |
+|        | 👟💥 New Arrival Alert! 🔥<br/>Just dropped: Our latest sneaker masterpiece!<br/>✨ Ultra-lightweight design<br/>✨ High-performance cushioning<br/>✨ Limited edition colors<br/>Get yours now! Only a few pairs left!<br/>#SneakerHeads #LimitedEdition #NewRelease | We have a new sneaker. It’s pretty good.<br/>#NewShoes |          |
+| Follow | 395                                                          | 394                                                    | +1       |
+| Like   | 452                                                          | 456                                                    | -4       |
+| Repost | 368                                                          | 338                                                    | +30      |
+
+### 场景五：饮品推荐
+
+|        | 受欢迎的推文                                                 | 不受欢迎的推文                        | $\Delta$ |
+| ------ | ------------------------------------------------------------ | ------------------------------------- | -------- |
+|        | Summer Refresh Alert! 🌞<br/>New Iced Tea is here! 🍃<br/>Sweet, tangy, and perfect for the heat!<br/>Grab yours today! 🥤<br/>#SummerCool #IcedTea #Refreshment | We have iced tea. It’s good.<br/>#Tea |          |
+| Follow | 180                                                          | 179                                   | +1       |
+| Like   | 151                                                          | 152                                   | -1       |
+| Repost | 127                                                          | 117                                   | +10      |
+
+可以看出，五个场景中人类认为的更受欢迎推文在我们的社交软件模拟器上都获得了更广泛的传播（$\Delta$ 基本为正值），这验证了我们的社交软件模拟器的有效性。
+
 ## 人员分工
 
 - **童雨轩**: 架构设计、模拟器开发、数据收集、可视化分析
