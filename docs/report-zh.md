@@ -96,6 +96,10 @@ flowchart TD
 | Like   | 8                                                            | 4                                                            | +4       |
 | Repost | 33                                                           | 26                                                           | +7       |
 
+![](results/new_song.png)
+
+
+
 ### 场景二：讨论游戏
 
 |        | 受欢迎的推文                                                 | 不受欢迎的推文                                      | $\Delta$ |
@@ -104,6 +108,8 @@ flowchart TD
 | Follow | 53                                                           | 53                                                  | 0        |
 | Like   | 340                                                          | 334                                                 | +6       |
 | Repost | 272                                                          | 270                                                 | +2       |
+
+![](results/game.png)
 
 ### 场景三：医疗问题
 
@@ -114,6 +120,10 @@ flowchart TD
 | Like   | 325                                                          | 313                                                          | +12      |
 | Repost | 267                                                          | 251                                                          | +16      |
 
+![](results/healthcare.png)
+
+![](results/healthcare2.png)
+
 ### 场景四：新品运动鞋发布
 
 |        | 受欢迎的推文                                                 | 不受欢迎的推文                                         | $\Delta$ |
@@ -122,6 +132,10 @@ flowchart TD
 | Follow | 395                                                          | 394                                                    | +1       |
 | Like   | 452                                                          | 456                                                    | -4       |
 | Repost | 368                                                          | 338                                                    | +30      |
+
+![](results/new_shoe.png)
+
+![](results/new_shoe2.png)
 
 ### 场景五：饮品推荐
 
@@ -133,6 +147,8 @@ flowchart TD
 | Repost | 127                                                          | 117                                   | +10      |
 
 可以看出，五个场景中人类认为的更受欢迎推文在我们的社交软件模拟器上都获得了更广泛的传播（$\Delta$ 基本为正值），这验证了我们的社交软件模拟器的有效性。
+
+![](results/tea.png)
 
 ## 人员分工
 
